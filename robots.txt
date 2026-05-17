@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+
+Sitemap: https://isaac9000.github.io/sitemap.xml
