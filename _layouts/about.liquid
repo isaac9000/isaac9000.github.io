@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-<div class="post">
+<div class="post about">
   <header class="post-header">
     <h1 class="post-title">
       {% if site.title == 'blank' %}
@@ -11,7 +11,9 @@ layout: default
         {{ site.title }}
       {% endif %}
     </h1>
-    <p class="desc">{{ page.subtitle }}</p>
+    {% if page.subtitle %}
+      <p class="desc">{{ page.subtitle }}</p>
+    {% endif %}
   </header>
 
   <article>
@@ -29,11 +31,18 @@ layout: default
       30vw, 95vw"{% endcapture %}
           {%
             include figure.liquid loading="eager" path=profile_image_path class=profile_image_class sizes=sizes alt=page.profile.image
-            cache_bust=true
+            cache_bust=true caption=page.profile.caption
           %}
         {% endif %}
-        {% if page.profile.more_info %}
-          <div class="more-info">{{ page.profile.more_info }}</div>
+        {% if page.profile.more_info or page.social %}
+          <div class="profile-contact">
+            {% if page.profile.more_info %}
+              <div class="more-info">{{ page.profile.more_info }}</div>
+            {% endif %}
+            {% if page.social %}
+              <div class="contact-icons">{% social_links %}</div>
+            {% endif %}
+          </div>
         {% endif %}
       </div>
     {% endif %}
@@ -59,13 +68,13 @@ layout: default
     <!-- Selected papers -->
     {% if page.selected_papers %}
       <h2>
-        <a href="{{ '/publications/' | relative_url }}" style="color: inherit">selected publications</a>
+        <a href="{{ '/publications/' | relative_url }}" style="color: inherit">Selected Publications</a>
       </h2>
       {% include selected_papers.liquid %}
     {% endif %}
 
     <!-- Social -->
-    {% if page.social %}
+    {% if page.social and page.profile == null %}
       <div class="social">
         <div class="contact-icons">{% social_links %}</div>
 
