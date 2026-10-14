@@ -30,3 +30,5 @@ Hi, I'm Isaac Sun, a sophomore at Carnegie Mellon University majoring in Mathema
 Last summer, I worked on RSI (Recursive Self-Improvement) at [Stanford Pervasive Parallelism Lab](https://ppl.stanford.edu/) with [Qizheng Zhang](https://alex-q-z.github.io/index.html) and [Professor Kunle Olukotun](https://engineering.stanford.edu/people/oyekunle-olukotun), where I co-developed [Stateless Language Agents](https://arxiv.org/abs/2610.07625), exploring how AI agents can sustain research progress over long runs. The approach lets agents build on past experimental results while starting each new task with fresh, focused context.
 
 Before CMU, I graduated from Lynbrook High School, where I competed in math olympiads (USAMO) and was part of the Lynbrook Math Team, which placed first at the Stanford Math Tournament in 2024 and second in 2025.
+
+Outside of research, I enjoy playing basketball, hiking, and discovering new music. I’m also a huge fan of social deduction games and solving puzzles like [Scurry](https://beastacademy.com/puzzles/daily/scurry) and LinkedIn games.
