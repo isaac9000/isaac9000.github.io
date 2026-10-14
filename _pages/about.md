@@ -25,7 +25,7 @@ latest_posts:
   limit: 3 # leave blank to include all the blog posts
 ---
 
-Hi, I'm Isaac Sun, a sophomore at Carnegie Mellon University majoring in Mathematics and Computer Science. I’m broadly interested in building reliable and intelligent AI systems, from improving coding agents through pretraining to grounding vision-language models in robotic perception and action.
+Hi, I'm Isaac Sun, a sophomore at Carnegie Mellon University majoring in Mathematics and Computer Science. I’m broadly interested in building reliable and intelligent AI systems, from improving coding agents through pretraining to grounding vision-language models in robotic perception and action. **I am currently looking for a long-term research group at CMU!**
 
 Last summer, I worked on RSI (Recursive Self-Improvement) at [Stanford Pervasive Parallelism Lab](https://ppl.stanford.edu/) with [Qizheng Zhang](https://alex-q-z.github.io/index.html) and [Professor Kunle Olukotun](https://engineering.stanford.edu/people/oyekunle-olukotun), where I co-developed [Stateless Language Agents](https://arxiv.org/abs/2610.07625), exploring how AI agents can sustain research progress over long runs. The approach lets agents build on past experimental results while starting each new task with fresh, focused context.
 
