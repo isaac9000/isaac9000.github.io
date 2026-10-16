@@ -31,4 +31,4 @@ Last summer, I worked on RSI (Recursive Self-Improvement) at [Stanford Pervasive
 
 Before CMU, I graduated from Lynbrook High School, where I competed in math olympiads (USAMO) and was part of the Lynbrook Math Team, which placed first at the Stanford Math Tournament in 2024 and second in 2025.
 
-Outside of research, I enjoy playing basketball, hiking, and discovering new music. I’m also a huge fan of social deduction games and solving puzzles like [Scurry](https://beastacademy.com/puzzles/daily/scurry) and LinkedIn games.
+Outside of research, I enjoy playing basketball, hiking, and discovering new music. I'm also a huge fan of social deduction games (try [Blood on the Clocktower](https://github.com/czhs/clocktower)) and solving puzzles like [Scurry](https://beastacademy.com/puzzles/daily/scurry) and LinkedIn games.
