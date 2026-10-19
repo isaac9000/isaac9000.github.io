@@ -26,6 +26,9 @@
       [hidden] {
         display: none !important;
       }
+      html.intro-lock {
+        overflow: hidden;
+      }
       /* Lantern Town: a 16-bit JRPG night town. The page is a walk down one street:
    rooftops + live clock tower (hero) → town square puzzle → tavern → notice board → workshop → gallery → guild hall → the road out.
    night #0f0d14 · panel #1b1724 · gold #d4a64a · parchment #efe6d2 · ember #e9793a · moss #6f9e5b · wood #6b4a30
@@ -330,7 +333,23 @@
         }
       }
     </style>
-    <script src="assets/clocktower/lantern-intro.min.js" defer></script>
+    <script>
+      // the opening covers the page from the first paint; lock scrolling until it ends (failsafe: unlock if the page script never starts)
+      (function () {
+        var d = document.documentElement,
+          reduce = false;
+        try {
+          reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        } catch (e) {}
+        if (!reduce) d.classList.add("intro-lock");
+        setTimeout(function () {
+          if (window.__ltAlive) return;
+          d.classList.remove("intro-lock");
+          var o = document.getElementById("introOverlay");
+          if (o) o.hidden = true;
+        }, 8000);
+      })();
+    </script>
   </head>
   <body>
     <div
@@ -343,12 +362,12 @@
       "
     >
       <!-- OPENING: Hollowmere (Clocktower Town's 3D pixel renderer), the circle, an execution -->
-      <div data-if="introOn" style="display: contents" hidden>
+      <div id="introOverlay" data-if="introOn" style="display: contents">
         <div
           class="introfade"
           role="region"
           aria-label="Opening animation"
-          style="position: fixed; left: 0; top: 0; width: 100%; height: min(100vh, 960px); z-index: 100; background: #07060a; overflow: hidden"
+          style="position: fixed; inset: 0; z-index: 100; background: #07060a; overflow: hidden"
           data-bind-style="opacity|introOpacity"
         >
           <canvas
@@ -358,7 +377,7 @@
           ></canvas>
           <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 7%; background: #000"></div>
           <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 7%; background: #000"></div>
-          <div data-if="introLoading" style="display: contents" hidden>
+          <div data-if="introLoading" style="display: contents">
             <div
               style="
                 position: absolute;
@@ -1751,6 +1770,14 @@
       class Component extends DCLogic {
         constructor(props) {
           super(props);
+          let reduce = false;
+          try {
+            reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          } catch (e) {
+            reduce = false;
+          }
+          this.reduceMotion = reduce;
+          // the opening covers the page from the first paint (the markup ships it visible) unless motion is reduced
           this.state = {
             phase: "night",
             now: Date.now(),
@@ -1758,8 +1785,8 @@
             dead: [],
             status: "playing",
             msg: "",
-            intro: "idle",
-            introText: "",
+            intro: reduce ? "idle" : "loading",
+            introText: "The Storyteller is setting up the town",
             victim: "",
           };
           this.tick = 0;
@@ -1773,13 +1800,9 @@
 
         componentDidMount() {
           this.clock = setInterval(() => this.setState({ now: Date.now() }), 15000);
-          let reduce = false;
-          try {
-            reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-          } catch (e) {
-            reduce = false;
-          }
-          if (!reduce) this.startIntro();
+          window.__ltAlive = true;
+          if (!this.reduceMotion) this.startIntro();
+          else this.unlockScroll();
         }
 
         componentWillUnmount() {
@@ -1800,36 +1823,109 @@
           this.introCanvas = el;
         }
 
+        // The opening runs in a Web Worker on an OffscreenCanvas (lantern-intro-worker.min.js), so building the town never
+        // blocks the page. Browsers without WebGL2 in workers get the same code on the main thread (lantern-intro.min.js).
+        workerOk() {
+          try {
+            return (
+              typeof Worker !== "undefined" &&
+              typeof OffscreenCanvas !== "undefined" &&
+              typeof HTMLCanvasElement.prototype.transferControlToOffscreen === "function" &&
+              !!new OffscreenCanvas(1, 1).getContext("webgl2")
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        startWorker(canvas, h) {
+          const off = canvas.transferControlToOffscreen();
+          const w = new Worker("assets/clocktower/lantern-intro-worker.min.js");
+          let ended = false;
+          const onResize = () => w.postMessage({ type: "resize", w: canvas.clientWidth, h: canvas.clientHeight });
+          const end = (res) => {
+            if (ended) return;
+            ended = true;
+            window.removeEventListener("resize", onResize);
+            try {
+              w.terminate();
+            } catch (e) {
+              /* already gone */
+            }
+            h.onDone(res || { skipped: true });
+          };
+          w.onmessage = (e) => {
+            const m = e.data || {};
+            if (m.type === "phase") h.onPhase(m.name, m.data || {});
+            else if (m.type === "done") end(m.res);
+          };
+          w.onerror = () => end({ skipped: true, error: "worker failed" });
+          window.addEventListener("resize", onResize);
+          w.postMessage({ type: "start", canvas: off, w: canvas.clientWidth, h: canvas.clientHeight }, [off]);
+          return { skip: () => end({ skipped: true }), dispose: () => end({ skipped: true }) };
+        }
+
+        loadMainThreadIntro() {
+          if (window.LanternIntro) return Promise.resolve();
+          return new Promise((resolve, reject) => {
+            const s = document.createElement("script");
+            s.src = "assets/clocktower/lantern-intro.min.js";
+            s.onload = () => resolve();
+            s.onerror = () => reject(new Error("intro script failed to load"));
+            document.head.appendChild(s);
+          });
+        }
+
+        lockScroll() {
+          try {
+            document.documentElement.classList.add("intro-lock");
+          } catch (e) {
+            /* no-op */
+          }
+        }
+        unlockScroll() {
+          try {
+            document.documentElement.classList.remove("intro-lock");
+          } catch (e) {
+            /* no-op */
+          }
+        }
+
         startIntro() {
           if (this.introCtrl || this.introWant) return;
           this.introWant = true;
+          this.lockScroll();
           this.setState({ intro: "loading", introText: "The Storyteller is setting up the town", victim: "" });
-          const t0 = Date.now();
-          const tryStart = () => {
-            if (!this.introWant) return;
-            if (window.LanternIntro && this.introCanvas) {
-              this.introCtrl = window.LanternIntro.play(this.introCanvas, {
-                onPhase: (name, d) => {
-                  if (!this.introWant) return;
-                  if (name === "loading") this.setState({ introText: d.text || "" });
-                  else this.setState({ intro: name, victim: d.name || this.state.victim });
-                },
-                onDone: () => {
-                  this.introCtrl = null;
-                  this.introWant = false;
-                  this.setState({ intro: "done" });
-                },
-              });
-              return;
-            }
-            if (Date.now() - t0 > 20000) {
+          // a fresh canvas each run: a canvas can hand its drawing surface to a worker only once
+          const old = this.introCanvas;
+          if (old && old.parentNode) {
+            const fresh = old.cloneNode(false);
+            old.parentNode.replaceChild(fresh, old);
+            this.introCanvas = fresh;
+          }
+          const canvas = this.introCanvas;
+          const handlers = {
+            onPhase: (name, d) => {
+              if (!this.introWant) return;
+              if (name === "loading") this.setState({ introText: d.text || "" });
+              else this.setState({ intro: name, victim: d.name || this.state.victim });
+            },
+            onDone: () => {
+              this.introCtrl = null;
               this.introWant = false;
+              this.unlockScroll();
               this.setState({ intro: "done" });
-              return;
-            }
-            this.introTimer = setTimeout(tryStart, 120);
+            },
           };
-          tryStart();
+          if (this.workerOk()) {
+            this.introCtrl = this.startWorker(canvas, handlers);
+            return;
+          }
+          this.loadMainThreadIntro()
+            .then(() => {
+              if (this.introWant) this.introCtrl = window.LanternIntro.play(canvas, handlers);
+            })
+            .catch(() => handlers.onDone({ skipped: true }));
         }
 
         skipIntro() {
@@ -1840,6 +1936,7 @@
             this.introCtrl = null;
             c.skip();
           }
+          this.unlockScroll();
           this.setState({ intro: "done" });
         }
 
@@ -1942,6 +2039,7 @@
           }
           if (!this.reduce)
             this.anim = setInterval(() => {
+              if (this.state.intro !== "idle" && this.state.intro !== "done") return; // hidden under the opening: save the CPU
               this.tick++;
               this.step();
               this.draw();
