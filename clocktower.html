@@ -1,0 +1,2471 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Lantern Town · Social Deduction Club</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Jacquard+24&amp;family=Nosifer&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap"
+    />
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      img {
+        max-width: 100%;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      /* Lantern Town: a 16-bit JRPG night town. The page is a walk down one street:
+   rooftops + live clock tower (hero) → town square puzzle → tavern → notice board → workshop → gallery → guild hall → the road out.
+   night #0f0d14 · panel #1b1724 · gold #d4a64a · parchment #efe6d2 · ember #e9793a · moss #6f9e5b · wood #6b4a30
+   display Jacquard 24 (pixel blackletter) · everything else Pixelify Sans */
+      body {
+        margin: 0;
+        background: #0f0d14;
+      }
+      a {
+        color: #e7c06a;
+      }
+      a:hover {
+        color: #f6dc9a;
+      }
+      .notch {
+        clip-path: polygon(
+          0 6px,
+          6px 6px,
+          6px 0,
+          calc(100% - 6px) 0,
+          calc(100% - 6px) 6px,
+          100% 6px,
+          100% calc(100% - 6px),
+          calc(100% - 6px) calc(100% - 6px),
+          calc(100% - 6px) 100%,
+          6px 100%,
+          6px calc(100% - 6px),
+          0 calc(100% - 6px)
+        );
+      }
+      .hero {
+        --lx: 74%;
+        --ly: 30%;
+      }
+      .clues {
+        -webkit-mask-image: radial-gradient(circle 150px at var(--lx) var(--ly), #000 35%, transparent 100%);
+        mask-image: radial-gradient(circle 150px at var(--lx) var(--ly), #000 35%, transparent 100%);
+      }
+      .lanternglow {
+        background: radial-gradient(circle 260px at var(--lx) var(--ly), rgba(233, 169, 74, 0.2), rgba(233, 169, 74, 0.07) 45%, transparent 70%);
+      }
+      .lantern {
+        left: var(--lx);
+        top: var(--ly);
+      }
+      .navlink {
+        text-decoration: none;
+        color: #c9bfd6;
+      }
+      .navlink:hover {
+        color: #f6dc9a;
+      }
+      .pxbtn {
+        transition: transform 0.1s steps(2);
+      }
+      .pxbtn:hover {
+        transform: translateY(-2px);
+      }
+      .pxbtn:focus-visible,
+      .opt:focus-visible,
+      .vill:focus-visible {
+        outline: 3px solid #f6dc9a;
+        outline-offset: 4px;
+      }
+      .pxbtn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .menu .opt {
+        text-decoration: none;
+        color: #efe6d2;
+        display: flex;
+        align-items: center;
+      }
+      .menu .opt::before {
+        content: "►";
+        visibility: hidden;
+        margin-right: 12px;
+        color: #d4a64a;
+        font-size: 0.8em;
+      }
+      .menu .opt.first::before,
+      .menu .opt:hover::before,
+      .menu .opt:focus-visible::before {
+        visibility: visible;
+      }
+      .menu:hover .opt.first:not(:hover)::before {
+        visibility: hidden;
+      }
+      .menu .opt:hover {
+        color: #f6dc9a;
+      }
+      .blink {
+        animation: blink 1s steps(1) infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .marquee {
+        animation: marquee 38s linear infinite;
+      }
+      @keyframes marquee {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+      .sign {
+        transform-origin: 50% 0;
+      }
+      .sign:hover {
+        animation: swing 1.4s ease-out;
+      }
+      @keyframes swing {
+        20% {
+          transform: rotate(5deg);
+        }
+        45% {
+          transform: rotate(-3.5deg);
+        }
+        70% {
+          transform: rotate(1.5deg);
+        }
+        100% {
+          transform: rotate(0);
+        }
+      }
+      .wood {
+        background-color: #6b4a30;
+        background-image:
+          repeating-linear-gradient(180deg, transparent 0 7px, rgba(43, 28, 18, 0.6) 7px 8px),
+          repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 11px);
+      }
+      .cork {
+        background-color: #9a7650;
+        background-image: radial-gradient(#7d5c3a 1px, transparent 1.6px), radial-gradient(#b5905f 1px, transparent 1.6px);
+        background-size:
+          9px 9px,
+          13px 13px;
+        background-position:
+          0 0,
+          4px 6px;
+      }
+      .stone {
+        background-color: #1d1927;
+        background-image: repeating-linear-gradient(180deg, transparent 0 30px, #16131e 30px 32px);
+      }
+      .cobble {
+        background-color: #15121c;
+        background-image:
+          radial-gradient(ellipse 9px 5px at 50% 50%, #231e2d 60%, transparent 64%),
+          radial-gradient(ellipse 9px 5px at 50% 50%, #1f1a28 60%, transparent 64%);
+        background-size:
+          22px 12px,
+          22px 12px;
+        background-position:
+          0 0,
+          11px 6px;
+      }
+      .plaza {
+        background-color: #1a1622;
+        background-image:
+          radial-gradient(circle at 50% 50%, #262033 0 18%, transparent 18.5%),
+          repeating-radial-gradient(circle at 50% 50%, #1f1a29 0 14px, #1a1622 14px 16px);
+      }
+      .notice {
+        transition: transform 0.15s steps(3);
+      }
+      .rot1 {
+        transform: rotate(-2deg);
+      }
+      .rot2 {
+        transform: rotate(1.5deg);
+      }
+      .rot3 {
+        transform: rotate(-0.8deg);
+      }
+      .rot4 {
+        transform: rotate(2.2deg);
+      }
+      .notice:hover {
+        transform: rotate(0) translateY(-6px);
+      }
+      .flame {
+        transform-origin: 50% 100%;
+        animation: flame 0.5s steps(3) infinite;
+        filter: drop-shadow(0 0 12px rgba(233, 121, 58, 0.75));
+      }
+      @keyframes flame {
+        0% {
+          transform: scale(1, 1);
+        }
+        50% {
+          transform: scale(1.12, 1.18) translateX(1px);
+        }
+        100% {
+          transform: scale(0.94, 0.92) translateX(-1px);
+        }
+      }
+      .banner {
+        transform-origin: 50% 0;
+        transition: transform 0.3s;
+      }
+      .banner:hover {
+        transform: rotate(-2deg);
+      }
+      .led {
+        animation: blink 2.4s steps(1) infinite;
+      }
+      .torch {
+        display: flex;
+      }
+      @media (max-width: 900px) {
+        .torch {
+          display: none;
+        }
+      }
+      .introfade {
+        transition: opacity 0.5s steps(6);
+      }
+      .introflash {
+        animation: iflash 0.6s ease-out both;
+      }
+      @keyframes iflash {
+        0% {
+          background: rgba(192, 34, 26, 0.92);
+        }
+        14% {
+          background: rgba(255, 236, 224, 0.9);
+        }
+        100% {
+          background: rgba(7, 6, 10, 0.88);
+        }
+      }
+      .slam {
+        display: inline-block;
+        animation: slam 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+      }
+      @keyframes slam {
+        0% {
+          transform: scale(1.6);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .jitter {
+        display: inline-block;
+        animation: jit 0.18s steps(2) infinite;
+      }
+      .jitter2 {
+        display: inline-block;
+        animation: jit 0.26s steps(2) infinite reverse;
+      }
+      @keyframes jit {
+        0% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(1px, -1px);
+        }
+        100% {
+          transform: translate(-1px, 1px);
+        }
+      }
+      .skipbtn:focus-visible,
+      .replay:focus-visible {
+        outline: 3px solid #f6dc9a;
+        outline-offset: 4px;
+      }
+      .replay {
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        font:
+          500 14px "Pixelify Sans",
+          monospace;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .marquee,
+        .blink,
+        .sign:hover,
+        .flame,
+        .led,
+        .pxbtn,
+        .notice,
+        .banner,
+        .introfade,
+        .introflash,
+        .slam,
+        .jitter,
+        .jitter2 {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+    <script src="assets/clocktower/lantern-intro.min.js" defer></script>
+  </head>
+  <body>
+    <div
+      style="
+        font-family: &quot;Pixelify Sans&quot;, &quot;Courier New&quot;, monospace;
+        color: #efe6d2;
+        background: #0f0d14;
+        font-size: 18px;
+        line-height: 1.6;
+      "
+    >
+      <!-- OPENING: Hollowmere (Clocktower Town's 3D pixel renderer), the circle, an execution -->
+      <div data-if="introOn" style="display: contents" hidden>
+        <div
+          class="introfade"
+          role="region"
+          aria-label="Opening animation"
+          style="position: fixed; left: 0; top: 0; width: 100%; height: min(100vh, 960px); z-index: 100; background: #07060a; overflow: hidden"
+          data-bind-style="opacity|introOpacity"
+        >
+          <canvas
+            aria-hidden="true"
+            style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated"
+            data-ref="setIntroCanvas"
+          ></canvas>
+          <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 7%; background: #000"></div>
+          <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 7%; background: #000"></div>
+          <div data-if="introLoading" style="display: contents" hidden>
+            <div
+              style="
+                position: absolute;
+                inset: 0;
+                background: #07060a;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                padding: 0 24px;
+                text-align: center;
+              "
+            >
+              <svg
+                width="42"
+                height="72"
+                viewBox="0 0 7 12"
+                shape-rendering="crispEdges"
+                aria-hidden="true"
+                style="filter: drop-shadow(0 0 18px rgba(233, 121, 58, 0.6))"
+              >
+                <path fill="#8a6d35" d="M3 0h1v2h-1zM2 2h3v1h-3zM1 3h5v1h-5zM0 4h1v5h-1zM6 4h1v5h-1zM1 9h5v1h-5zM2 10h3v1h-3z"></path>
+                <path class="blink" fill="#e9793a" d="M1 4h5v5h-5z" style="animation-duration: 1.4s"></path>
+                <path fill="#f6dc9a" d="M3 5h1v3h-1z"></path>
+              </svg>
+              <span style="font-family: &quot;Jacquard 24&quot;, serif; font-size: clamp(44px, 6vw, 76px); line-height: 1; color: #d4a64a"
+                >Hollowmere</span
+              >
+              <span style="font-size: 15px; letter-spacing: 0.06em; color: #a89fb5"
+                ><span data-text="introText"></span><span class="blink">…</span></span
+              >
+            </div>
+          </div>
+          <div data-if="introFly" style="display: contents" hidden>
+            <span aria-hidden="true" style="position: absolute; left: 24px; top: 2%; font-size: 13px; letter-spacing: 0.18em; color: #a89fb5"
+              >HOLLOWMERE · NIGHT · RENDERED LIVE BY CLOCKTOWER TOWN</span
+            >
+          </div>
+          <div data-if="introTitle" style="display: contents" hidden>
+            <div
+              class="introflash"
+              role="status"
+              style="
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                text-align: center;
+                padding: 0 24px;
+              "
+            >
+              <span style="font-size: clamp(12px, 1.4vw, 17px); letter-spacing: 0.32em; color: #a89fb5">THE TOWN HAS VOTED</span>
+              <span class="slam"
+                ><span
+                  class="jitter"
+                  style="
+                    font-family: &quot;Jacquard 24&quot;, serif;
+                    font-size: clamp(56px, 9vw, 136px);
+                    line-height: 0.95;
+                    color: #efe6d2;
+                    text-wrap: balance;
+                  "
+                  ><span data-text="victimName"></span></span
+              ></span>
+              <span class="slam" style="animation-delay: 0.18s"
+                ><span
+                  class="jitter2"
+                  style="
+                    font-family: Nosifer, &quot;Jacquard 24&quot;, serif;
+                    font-size: clamp(26px, 4.4vw, 66px);
+                    line-height: 1.2;
+                    color: #c4241b;
+                    text-shadow: 0 0 22px rgba(196, 36, 27, 0.6);
+                  "
+                  >has been executed</span
+                ></span
+              >
+            </div>
+          </div>
+          <div data-if="introDeath" style="display: contents" hidden>
+            <div
+              aria-hidden="true"
+              style="
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background: radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, 0) 38%, rgba(110, 8, 6, 0.5) 100%);
+              "
+            ></div>
+          </div>
+          <button
+            type="button"
+            class="skipbtn"
+            style="
+              position: absolute;
+              right: 20px;
+              bottom: calc(7% + 16px);
+              border: 0;
+              cursor: pointer;
+              font:
+                600 15px &quot;Pixelify Sans&quot;,
+                monospace;
+              background: rgba(21, 18, 28, 0.9);
+              color: #efe6d2;
+              padding: 10px 16px;
+              box-shadow:
+                0 -3px 0 #8a6d35,
+                0 3px 0 #8a6d35,
+                -3px 0 0 #8a6d35,
+                3px 0 0 #8a6d35;
+            "
+            data-on="click:skipIntro"
+          >
+            Skip intro ▸▸
+          </button>
+        </div>
+      </div>
+
+      <!-- NAV -->
+      <header style="background: #15121c; border-bottom: 3px solid #2e2740">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 12px clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px 32px;
+          "
+        >
+          <a href="#top" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #d4a64a">
+            <svg width="28" height="28" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
+              <path fill="#d4a64a" d="M3 0h3v1h-3zM1 1h3v1h-3zM0 2h3v1h-3zM0 3h2v2h-2zM0 5h3v1h-3zM1 6h3v1h-3zM3 7h3v1h-3z"></path>
+            </svg>
+            <span style="display: flex; flex-direction: column; line-height: 1">
+              <span style="font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif; font-size: 30px">Social Deduction Club</span>
+              <span style="font-size: 12px; letter-spacing: 0.14em; color: #a89fb5; margin-top: 4px">CARNEGIE MELLON UNIVERSITY</span>
+            </span>
+          </a>
+          <nav aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 26px; font-size: 16px">
+            <a class="navlink" href="#square">Town square</a>
+            <a class="navlink" href="#tavern">Game nights</a>
+            <a class="navlink" href="#games">Games</a>
+            <a class="navlink" href="#workshop">Online ports</a>
+            <a class="navlink" href="#sponsor">Sponsor us</a>
+            <a
+              class="pxbtn"
+              href="#join"
+              style="
+                text-decoration: none;
+                background: #d4a64a;
+                color: #1a1408;
+                font-weight: 600;
+                padding: 8px 16px;
+                box-shadow:
+                  0 -3px 0 #8a6d35,
+                  0 3px 0 #5e4a22,
+                  -3px 0 0 #8a6d35,
+                  3px 0 0 #5e4a22,
+                  inset 0 -3px 0 #a9822f,
+                  inset 0 3px 0 #f0d189;
+              "
+              >Join the Discord</a
+            >
+          </nav>
+        </div>
+      </header>
+
+      <!-- TOWN CRIER -->
+      <div role="region" aria-label="Announcements" style="background: #d4a64a; color: #1a1408; overflow: hidden; border-bottom: 3px solid #8a6d35">
+        <div class="marquee" style="display: flex; width: max-content; font-size: 15px; font-weight: 600; white-space: nowrap; padding-block: 7px">
+          <div style="display: flex; gap: 40px; padding-right: 40px">
+            <span>HEAR YE! Next game night: [Day, date] · [7:00 pm] · [Building, room]</span><span aria-hidden="true">◆</span>
+            <span>Clocktower Town is open. Play in your browser.</span><span aria-hidden="true">◆</span>
+            <span>New players welcome. Rules taught at the table.</span><span aria-hidden="true">◆</span>
+            <span>Sponsors wanted. Ask for our packet.</span><span aria-hidden="true">◆</span>
+          </div>
+          <div aria-hidden="true" style="display: flex; gap: 40px; padding-right: 40px">
+            <span>HEAR YE! Next game night: [Day, date] · [7:00 pm] · [Building, room]</span><span>◆</span>
+            <span>Clocktower Town is open. Play in your browser.</span><span>◆</span> <span>New players welcome. Rules taught at the table.</span
+            ><span>◆</span> <span>Sponsors wanted. Ask for our packet.</span><span>◆</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HERO: live pixel town + lantern -->
+
+      <!-- TOWN SQUARE: find the Demon -->
+      <section
+        id="top"
+        class="hero"
+        style="position: relative; overflow: hidden; background: #0f0d14; border-bottom: 3px solid #2e2740"
+        data-ref="setHero"
+        data-on="pointermove:onMove"
+      >
+        <canvas
+          aria-hidden="true"
+          style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated"
+          data-ref="setCanvas"
+        ></canvas>
+        <div aria-hidden="true" style="position: absolute; inset: 0" data-bind-style="background|heroShade"></div>
+        <div data-if="night" style="display: contents" hidden>
+          <div
+            class="clues"
+            aria-hidden="true"
+            style="position: absolute; inset: 0; pointer-events: none; font-size: 16px; color: #f0d189; text-shadow: 0 0 8px rgba(233, 169, 74, 0.7)"
+          >
+            <span style="position: absolute; left: 63%; top: 24%; transform: rotate(-4deg)">someone here lied about Edda</span>
+            <span style="position: absolute; left: 56%; top: 9%; transform: rotate(3deg)">the clock tower keeps Pittsburgh time</span>
+            <span style="position: absolute; left: 80%; top: 44%; transform: rotate(-2deg)">game night: [day], [time]</span>
+            <span style="position: absolute; left: 52%; top: 52%; transform: rotate(2deg)">↓ the Demon waits in the square</span>
+            <span style="position: absolute; left: 86%; top: 14%; transform: rotate(-6deg)">trust no one</span>
+            <span style="position: absolute; left: 70%; top: 66%; transform: rotate(1deg)">the dead still talk here</span>
+          </div>
+          <div class="lanternglow" aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none"></div>
+          <div class="lantern" aria-hidden="true" style="position: absolute; pointer-events: none; transform: translate(-50%, -30%)">
+            <svg width="28" height="48" viewBox="0 0 7 12" shape-rendering="crispEdges">
+              <path fill="#8a6d35" d="M3 0h1v2h-1zM2 2h3v1h-3zM1 3h5v1h-5zM0 4h1v5h-1zM6 4h1v5h-1zM1 9h5v1h-5zM2 10h3v1h-3z"></path>
+              <path class="blink" fill="#e9793a" d="M1 4h5v5h-5z" style="animation-duration: 1.7s"></path>
+              <path fill="#f6dc9a" d="M3 5h1v3h-1z"></path>
+            </svg>
+          </div>
+        </div>
+        <div
+          style="
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(40px, 6vw, 72px) clamp(16px, 4vw, 48px) clamp(220px, 24vw, 330px);
+          "
+        >
+          <div style="max-width: 600px; display: flex; flex-direction: column; gap: 22px">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px">
+              <div
+                role="group"
+                aria-label="Game phase"
+                style="
+                  display: flex;
+                  padding: 3px;
+                  background: #2e2740;
+                  box-shadow:
+                    0 -3px 0 #8a6d35,
+                    0 3px 0 #8a6d35,
+                    -3px 0 0 #8a6d35,
+                    3px 0 0 #8a6d35;
+                "
+              >
+                <button
+                  type="button"
+                  class="pxbtn"
+                  style="
+                    border: 0;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font:
+                      600 15px &quot;Pixelify Sans&quot;,
+                      monospace;
+                    padding: 7px 14px;
+                  "
+                  data-bind-style="background|nightBg;;color|nightFg"
+                  data-bind-attr="aria-pressed:nightPressed"
+                  data-on="click:toNight"
+                >
+                  <svg width="14" height="14" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
+                    <path fill="currentColor" d="M3 0h3v1h-3zM1 1h3v1h-3zM0 2h3v1h-3zM0 3h2v2h-2zM0 5h3v1h-3zM1 6h3v1h-3zM3 7h3v1h-3z"></path></svg
+                  >Night
+                </button>
+                <button
+                  type="button"
+                  class="pxbtn"
+                  style="
+                    border: 0;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font:
+                      600 15px &quot;Pixelify Sans&quot;,
+                      monospace;
+                    padding: 7px 14px;
+                  "
+                  data-bind-style="background|dayBg;;color|dayFg"
+                  data-bind-attr="aria-pressed:dayPressed"
+                  data-on="click:toDay"
+                >
+                  <svg width="14" height="14" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M3 0h2v1h-2zM0 3h1v2h-1zM7 3h1v2h-1zM3 7h2v1h-2zM2 2h4v4h-4zM1 1h1v1h-1zM6 1h1v1h-1zM1 6h1v1h-1zM6 6h1v1h-1z"
+                    ></path></svg
+                  >Day
+                </button>
+              </div>
+              <span style="font-size: 15px; letter-spacing: 0.04em" data-bind-style="color|eyebrowColor"><span data-text="eyebrow"></span></span>
+            </div>
+            <h1
+              style="
+                margin: 0;
+                font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                font-weight: 400;
+                font-size: clamp(60px, 8.4vw, 118px);
+                line-height: 0.9;
+                text-wrap: balance;
+                text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+              "
+              data-bind-style="color|titleColor"
+            >
+              Someone in this town is <span style="" data-bind-style="color|accentColor">lying.</span>
+            </h1>
+            <div class="notch" style="background: #d4a64a; padding: 3px">
+              <div class="notch" style="background: #15121c; padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 16px">
+                <p style="margin: 0; font-size: 18px; color: #e6ddef">
+                  We are Carnegie Mellon’s social deduction club. We play Blood on the Clocktower, Avalon, Werewolf and other games where half the
+                  table is keeping a secret, and our members build online versions you can play from anywhere.
+                </p>
+                <nav class="menu" aria-label="Start" style="display: flex; flex-direction: column; gap: 6px; font-size: 20px; font-weight: 600">
+                  <a class="opt first" href="#tavern">Come to a game night</a>
+                  <a class="opt" href="#square">Find the Demon</a>
+                  <a class="opt" href="#workshop">Play our games online</a>
+                </nav>
+                <span class="blink" aria-hidden="true" style="align-self: flex-end; color: #d4a64a; font-size: 14px; line-height: 1">▼</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline">
+              <p style="margin: 0; font-size: 14px" data-bind-style="color|hintColor"><span data-text="hint"></span></p>
+              <button type="button" class="replay" style="" data-bind-style="color|hintColor" data-on="click:replayIntro">
+                ▶ Replay the opening
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="square" class="stone" style="border-bottom: 3px solid #2e2740">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(64px, 8vw, 104px) clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-direction: column;
+            gap: 36px;
+          "
+        >
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 48px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div aria-hidden="true" style="display: inline-flex; flex-direction: column; align-items: flex-start">
+                <span style="width: 150px; height: 6px; background: #3a3147; box-shadow: 0 2px 0 #0b0a10"></span>
+                <div class="sign" style="margin-left: 18px; display: inline-flex; flex-direction: column">
+                  <div style="display: flex; justify-content: space-between; padding: 0 14px">
+                    <span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span
+                    ><span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span>
+                  </div>
+                  <div
+                    class="wood"
+                    style="
+                      padding: 8px 18px;
+                      border: 3px solid #2b1c12;
+                      font-family: &quot;Jacquard 24&quot;, serif;
+                      font-size: 28px;
+                      line-height: 1;
+                      color: #f0d189;
+                      text-shadow: 0 2px 0 #2b1c12;
+                    "
+                  >
+                    Town Square
+                  </div>
+                </div>
+              </div>
+              <h2
+                style="
+                  margin: 12px 0 0;
+                  font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                  font-weight: 400;
+                  font-size: clamp(44px, 5.4vw, 72px);
+                  line-height: 1;
+                  text-wrap: balance;
+                "
+              >
+                Before you come in, find the Demon
+              </h2>
+            </div>
+            <p style="margin: 0; max-width: 30em; color: #c9bfd6">
+              One of these seven villagers is the Demon, and the Demon always lies. Everyone else tells the truth. Read the claims, then execute
+              someone. You have three days.
+            </p>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+            <div style="flex: 1 1 420px; min-width: 0; max-width: 560px">
+              <div class="plaza notch" style="position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; border: 3px solid #3a3147">
+                <svg
+                  aria-hidden="true"
+                  width="96"
+                  height="72"
+                  viewBox="0 0 16 12"
+                  shape-rendering="crispEdges"
+                  style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%)"
+                >
+                  <path fill="#5a5068" d="M0 6h16v1h-16zM7 2h2v4h-2zM5 2h6v1h-6z"></path>
+                  <path fill="#3a3147" d="M1 7h14v4h-14z"></path>
+                  <path fill="#4a6fc9" d="M1 7h14v1h-14z"></path>
+                  <path fill="#93acec" d="M6 0h1v2h-1zM9 0h1v2h-1zM4 3h1v1h-1zM11 3h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1z"></path>
+                </svg>
+                <div id="plazaVillagers" style="display: contents"></div>
+              </div>
+            </div>
+            <div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+              <div class="notch" style="background: #d4a64a; padding: 3px">
+                <div class="notch" style="background: #15121c; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+                    <span style="font-size: 14px; letter-spacing: 0.12em; color: #a89fb5">THE ACCUSED</span>
+                    <div style="display: flex; align-items: center; gap: 8px">
+                      <div id="daysList" style="display: contents"></div>
+                      <span style="font-size: 14px; color: #c9bfd6"><span data-text="daysText"></span></span>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 16px; align-items: flex-start">
+                    <svg width="48" height="72" viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true" style="flex: 0 0 auto">
+                      <path
+                        d="M2 0h4v1h-4zM1 1h6v1h-6zM1 2h1v3h-1zM6 2h1v3h-1zM2 5h4v1h-4zM1 6h6v1h-6zM0 7h8v2h-8zM1 9h6v1h-6zM1 10h2v1h-2zM5 10h2v1h-2z"
+                        data-bind-attr="fill:selCloak"
+                      ></path>
+                      <path d="M2 2h4v3h-4z" data-bind-attr="fill:selSkin"></path>
+                      <path fill="#1a1408" d="M2 3h1v1h-1zM5 3h1v1h-1z"></path>
+                    </svg>
+                    <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                      <span style="font-size: 16px; font-weight: 700; color: #d4a64a"><span data-text="selName"></span> says:</span>
+                      <span style="font-size: 20px; line-height: 1.4">“<span data-text="selClaim"></span>”</span>
+                    </div>
+                  </div>
+                  <div data-if="playing" style="display: contents" hidden>
+                    <button
+                      type="button"
+                      class="pxbtn"
+                      style="
+                        align-self: flex-start;
+                        border: 0;
+                        cursor: pointer;
+                        font:
+                          600 17px &quot;Pixelify Sans&quot;,
+                          monospace;
+                        background: #b2413b;
+                        color: #fff4ea;
+                        padding: 11px 20px;
+                        box-shadow:
+                          0 -3px 0 #7d2a26,
+                          0 3px 0 #4f1916,
+                          -3px 0 0 #7d2a26,
+                          3px 0 0 #4f1916,
+                          inset 0 -3px 0 #8c302b,
+                          inset 0 3px 0 #d8665f;
+                      "
+                      data-on="click:execute"
+                      data-bind-prop="disabled:cantExec"
+                    >
+                      <span data-text="execLabel"></span>
+                    </button>
+                  </div>
+                  <p role="status" style="margin: 0; padding-top: 12px; border-top: 2px solid #2e2740; font-size: 16px; color: #c9bfd6">
+                    <span data-text="msg"></span>
+                  </p>
+                  <div data-if="over" style="display: contents" hidden>
+                    <div style="display: flex; flex-wrap: wrap; gap: 18px; padding-top: 4px">
+                      <button
+                        type="button"
+                        class="pxbtn"
+                        style="
+                          border: 0;
+                          cursor: pointer;
+                          font:
+                            600 16px &quot;Pixelify Sans&quot;,
+                            monospace;
+                          background: #241f31;
+                          color: #efe6d2;
+                          padding: 10px 18px;
+                          box-shadow:
+                            0 -3px 0 #8a6d35,
+                            0 3px 0 #8a6d35,
+                            -3px 0 0 #8a6d35,
+                            3px 0 0 #8a6d35;
+                        "
+                        data-on="click:reset"
+                      >
+                        Play again
+                      </button>
+                      <a
+                        class="pxbtn"
+                        href="#tavern"
+                        style="
+                          text-decoration: none;
+                          font-weight: 600;
+                          font-size: 16px;
+                          background: #d4a64a;
+                          color: #1a1408;
+                          padding: 10px 18px;
+                          box-shadow:
+                            0 -3px 0 #8a6d35,
+                            0 3px 0 #5e4a22,
+                            -3px 0 0 #8a6d35,
+                            3px 0 0 #5e4a22,
+                            inset 0 -3px 0 #a9822f,
+                            inset 0 3px 0 #f0d189;
+                        "
+                        >Come to a real game night</a
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="notch"
+                style="background: #1b1724; border: 2px solid #3a3147; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"
+              >
+                <span style="font-size: 14px; letter-spacing: 0.12em; color: #a89fb5; padding-bottom: 6px">STORYTELLER’S NOTES</span>
+                <div id="notesList" style="display: contents"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAVERN: game nights -->
+      <section id="tavern" style="background: #1a130f; border-bottom: 3px solid #2b1c12">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(64px, 8vw, 104px) clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 48px;
+            align-items: flex-start;
+          "
+        >
+          <div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+            <div aria-hidden="true" style="display: inline-flex; flex-direction: column; align-items: flex-start">
+              <span style="width: 150px; height: 6px; background: #3a2a1f; box-shadow: 0 2px 0 #0b0a10"></span>
+              <div class="sign" style="margin-left: 18px; display: inline-flex; flex-direction: column">
+                <div style="display: flex; justify-content: space-between; padding: 0 14px">
+                  <span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span
+                  ><span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span>
+                </div>
+                <div
+                  class="wood"
+                  style="
+                    padding: 8px 18px;
+                    border: 3px solid #2b1c12;
+                    font-family: &quot;Jacquard 24&quot;, serif;
+                    font-size: 28px;
+                    line-height: 1;
+                    color: #f0d189;
+                    text-shadow: 0 2px 0 #2b1c12;
+                  "
+                >
+                  The Tavern
+                </div>
+              </div>
+            </div>
+            <h2
+              style="
+                margin: 0;
+                font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                font-weight: 400;
+                font-size: clamp(44px, 5.4vw, 72px);
+                line-height: 1;
+              "
+            >
+              Game nights
+            </h2>
+            <p style="margin: 0; max-width: 28em; color: #e0d2c0">
+              Pull up a chair. We split into towns of up to fifteen, deal roles, and play until someone is caught. First-timers get a seat and a rules
+              walkthrough.
+            </p>
+            <dl style="margin: 0; display: grid; grid-template-columns: minmax(80px, auto) minmax(0, 1fr); gap: 10px 20px; font-size: 17px">
+              <dt style="color: #c49a5a">When</dt>
+              <dd style="margin: 0">[Day of the week], [7:00 pm]</dd>
+              <dt style="color: #c49a5a">Where</dt>
+              <dd style="margin: 0">[Building, room number]</dd>
+              <dt style="color: #c49a5a">Who</dt>
+              <dd style="margin: 0">Any Carnegie Mellon student. No experience needed.</dd>
+            </dl>
+          </div>
+          <div class="notch" style="flex: 1 1 460px; min-width: 0; background: #d4a64a; padding: 3px">
+            <div class="notch" style="background: #15121c; padding: 26px 26px 22px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 14px; letter-spacing: 0.12em; color: #a89fb5; padding-bottom: 10px">QUEST LOG · ONE NIGHT IN TOWN</span>
+              <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+                <li style="display: flex; gap: 16px">
+                  <div aria-hidden="true" style="display: flex; flex-direction: column; align-items: center">
+                    <span style="width: 18px; height: 18px; background: #d4a64a; box-shadow: inset -3px -3px 0 #8a6d35"></span
+                    ><span
+                      style="flex: 1; width: 4px; background: repeating-linear-gradient(#3a3147 0 4px, transparent 4px 8px); min-height: 28px"
+                    ></span>
+                  </div>
+                  <div style="padding-bottom: 18px">
+                    <div style="font-weight: 700; font-size: 19px">Draw a role</div>
+                    <div style="color: #c9bfd6; font-size: 16px">
+                      Everyone gets a secret identity. Most are good. A few are evil, and they know each other.
+                    </div>
+                  </div>
+                </li>
+                <li style="display: flex; gap: 16px">
+                  <div aria-hidden="true" style="display: flex; flex-direction: column; align-items: center">
+                    <span style="width: 18px; height: 18px; background: #d4a64a; box-shadow: inset -3px -3px 0 #8a6d35"></span
+                    ><span
+                      style="flex: 1; width: 4px; background: repeating-linear-gradient(#3a3147 0 4px, transparent 4px 8px); min-height: 28px"
+                    ></span>
+                  </div>
+                  <div style="padding-bottom: 18px">
+                    <div style="font-weight: 700; font-size: 19px">Night falls</div>
+                    <div style="color: #c9bfd6; font-size: 16px">
+                      Eyes closed. The Storyteller wakes roles one by one to act in secret: a poisoning, a vision, a kill.
+                    </div>
+                  </div>
+                </li>
+                <li style="display: flex; gap: 16px">
+                  <div aria-hidden="true" style="display: flex; flex-direction: column; align-items: center">
+                    <span style="width: 18px; height: 18px; background: #d4a64a; box-shadow: inset -3px -3px 0 #8a6d35"></span
+                    ><span
+                      style="flex: 1; width: 4px; background: repeating-linear-gradient(#3a3147 0 4px, transparent 4px 8px); min-height: 28px"
+                    ></span>
+                  </div>
+                  <div style="padding-bottom: 18px">
+                    <div style="font-weight: 700; font-size: 19px">Day breaks</div>
+                    <div style="color: #c9bfd6; font-size: 16px">
+                      Claims, counter-claims and whispered deals in the corner. Someone always asks to be trusted.
+                    </div>
+                  </div>
+                </li>
+                <li style="display: flex; gap: 16px">
+                  <div aria-hidden="true" style="display: flex; flex-direction: column; align-items: center">
+                    <span style="width: 18px; height: 18px; background: #e9793a; box-shadow: inset -3px -3px 0 #9c4a1f"></span>
+                  </div>
+                  <div>
+                    <div style="font-weight: 700; font-size: 19px">The vote</div>
+                    <div style="color: #c9bfd6; font-size: 16px">
+                      Nominate, argue, raise hands. Execute someone and hope it was the right call. Repeat until one side wins.
+                    </div>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOTICE BOARD: games -->
+      <section id="games" class="stone" style="border-bottom: 3px solid #2e2740">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(64px, 8vw, 104px) clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+          "
+        >
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div aria-hidden="true" style="display: inline-flex; flex-direction: column; align-items: flex-start">
+              <span style="width: 150px; height: 6px; background: #3a3147; box-shadow: 0 2px 0 #0b0a10"></span>
+              <div class="sign" style="margin-left: 18px; display: inline-flex; flex-direction: column">
+                <div style="display: flex; justify-content: space-between; padding: 0 14px">
+                  <span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span
+                  ><span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span>
+                </div>
+                <div
+                  class="wood"
+                  style="
+                    padding: 8px 18px;
+                    border: 3px solid #2b1c12;
+                    font-family: &quot;Jacquard 24&quot;, serif;
+                    font-size: 28px;
+                    line-height: 1;
+                    color: #f0d189;
+                    text-shadow: 0 2px 0 #2b1c12;
+                  "
+                >
+                  Notice Board
+                </div>
+              </div>
+            </div>
+            <h2
+              style="
+                margin: 12px 0 0;
+                font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                font-weight: 400;
+                font-size: clamp(44px, 5.4vw, 72px);
+                line-height: 1;
+              "
+            >
+              Wanted: players
+            </h2>
+          </div>
+          <div
+            class="cork"
+            style="
+              border: 14px solid #4a3020;
+              box-shadow:
+                inset 0 0 0 3px #2b1c12,
+                inset 0 6px 18px rgba(0, 0, 0, 0.45),
+                0 0 0 3px #2b1c12;
+              padding: clamp(20px, 3vw, 40px);
+            "
+          >
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 28px">
+              <article
+                class="notice rot1"
+                style="
+                  position: relative;
+                  background: #ecdfc1;
+                  color: #2b2118;
+                  padding: 30px 22px 22px;
+                  box-shadow: 4px 6px 0 rgba(43, 28, 18, 0.45);
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                "
+              >
+                <span
+                  aria-hidden="true"
+                  style="
+                    position: absolute;
+                    top: 8px;
+                    left: 50%;
+                    width: 8px;
+                    height: 8px;
+                    margin-left: -4px;
+                    background: #5a5068;
+                    box-shadow: inset -2px -2px 0 #2e2740;
+                  "
+                ></span>
+                <span style="font-family: &quot;Jacquard 24&quot;, serif; font-size: 40px; line-height: 0.9; color: #7d2a26">Wanted</span>
+                <span style="font-weight: 700; font-size: 15px; letter-spacing: 0.06em">5–15 PLAYERS · 1–2 HOURS</span>
+                <h3 style="margin: 4px 0 0; font-size: 22px; font-weight: 700; line-height: 1.2">Blood on the Clocktower</h3>
+                <p style="margin: 0; font-size: 15px; line-height: 1.5">
+                  Our main event. A Storyteller runs the town while good hunts a hidden Demon. Dead players keep talking, so nobody sits out.
+                </p>
+                <span style="margin-top: auto; padding-top: 8px; border-top: 2px dashed #b9a982; font-size: 14px; color: #6b4a30"
+                  >Reward: being right, for once</span
+                >
+              </article>
+              <article
+                class="notice rot2"
+                style="
+                  position: relative;
+                  background: #ecdfc1;
+                  color: #2b2118;
+                  padding: 30px 22px 22px;
+                  box-shadow: 4px 6px 0 rgba(43, 28, 18, 0.45);
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                "
+              >
+                <span
+                  aria-hidden="true"
+                  style="
+                    position: absolute;
+                    top: 8px;
+                    left: 50%;
+                    width: 8px;
+                    height: 8px;
+                    margin-left: -4px;
+                    background: #5a5068;
+                    box-shadow: inset -2px -2px 0 #2e2740;
+                  "
+                ></span>
+                <span style="font-family: &quot;Jacquard 24&quot;, serif; font-size: 40px; line-height: 0.9; color: #2f4a8f">Wanted</span>
+                <span style="font-weight: 700; font-size: 15px; letter-spacing: 0.06em">5–10 PLAYERS · 30 MINUTES</span>
+                <h3 style="margin: 4px 0 0; font-size: 22px; font-weight: 700; line-height: 1.2">Avalon</h3>
+                <p style="margin: 0; font-size: 15px; line-height: 1.5">
+                  Knights pick teams for quests while Mordred’s minions sabotage from inside. Merlin knows the traitors but cannot say so.
+                </p>
+                <span style="margin-top: auto; padding-top: 8px; border-top: 2px dashed #b9a982; font-size: 14px; color: #6b4a30"
+                  >Reward: three successful quests</span
+                >
+              </article>
+              <article
+                class="notice rot3"
+                style="
+                  position: relative;
+                  background: #ecdfc1;
+                  color: #2b2118;
+                  padding: 30px 22px 22px;
+                  box-shadow: 4px 6px 0 rgba(43, 28, 18, 0.45);
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                "
+              >
+                <span
+                  aria-hidden="true"
+                  style="
+                    position: absolute;
+                    top: 8px;
+                    left: 50%;
+                    width: 8px;
+                    height: 8px;
+                    margin-left: -4px;
+                    background: #5a5068;
+                    box-shadow: inset -2px -2px 0 #2e2740;
+                  "
+                ></span>
+                <span style="font-family: &quot;Jacquard 24&quot;, serif; font-size: 40px; line-height: 0.9; color: #4a6e3b">Wanted</span>
+                <span style="font-weight: 700; font-size: 15px; letter-spacing: 0.06em">6+ PLAYERS · 20–40 MINUTES</span>
+                <h3 style="margin: 4px 0 0; font-size: 22px; font-weight: 700; line-height: 1.2">Werewolf</h3>
+                <p style="margin: 0; font-size: 15px; line-height: 1.5">
+                  The classic. Villagers vote by day, wolves hunt by night, a moderator keeps it moving. Quick rounds and a lot of shouting.
+                </p>
+                <span style="margin-top: auto; padding-top: 8px; border-top: 2px dashed #b9a982; font-size: 14px; color: #6b4a30"
+                  >Reward: surviving until morning</span
+                >
+              </article>
+              <article
+                class="notice rot4"
+                style="
+                  position: relative;
+                  background: #f2e9d4;
+                  color: #2b2118;
+                  padding: 30px 22px 22px;
+                  box-shadow: 4px 6px 0 rgba(43, 28, 18, 0.45);
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                "
+              >
+                <span
+                  aria-hidden="true"
+                  style="
+                    position: absolute;
+                    top: 8px;
+                    left: 50%;
+                    width: 8px;
+                    height: 8px;
+                    margin-left: -4px;
+                    background: #5a5068;
+                    box-shadow: inset -2px -2px 0 #2e2740;
+                  "
+                ></span>
+                <span style="font-family: &quot;Jacquard 24&quot;, serif; font-size: 40px; line-height: 0.9; color: #9c4a1f">Wanted</span>
+                <span style="font-weight: 700; font-size: 15px; letter-spacing: 0.06em">NO EXPERIENCE NEEDED</span>
+                <h3 style="margin: 4px 0 0; font-size: 22px; font-weight: 700; line-height: 1.2">You</h3>
+                <p style="margin: 0; font-size: 15px; line-height: 1.5">
+                  Most people have never played before their first night. Sit down, get a role, and someone will walk you through it.
+                </p>
+                <span style="margin-top: auto; padding-top: 8px; border-top: 2px dashed #b9a982; font-size: 14px; color: #6b4a30"
+                  >Report to: [room], [day] at [time]</span
+                >
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WORKSHOP: online ports -->
+      <section id="workshop" style="background: #13101a; border-bottom: 3px solid #2e2740">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(64px, 8vw, 104px) clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 48px;
+            align-items: flex-start;
+          "
+        >
+          <div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+            <div aria-hidden="true" style="display: inline-flex; flex-direction: column; align-items: flex-start">
+              <span style="width: 150px; height: 6px; background: #3a3147; box-shadow: 0 2px 0 #0b0a10"></span>
+              <div class="sign" style="margin-left: 18px; display: inline-flex; flex-direction: column">
+                <div style="display: flex; justify-content: space-between; padding: 0 14px">
+                  <span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span
+                  ><span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span>
+                </div>
+                <div
+                  class="wood"
+                  style="
+                    padding: 8px 18px;
+                    border: 3px solid #2b1c12;
+                    font-family: &quot;Jacquard 24&quot;, serif;
+                    font-size: 28px;
+                    line-height: 1;
+                    color: #f0d189;
+                    text-shadow: 0 2px 0 #2b1c12;
+                  "
+                >
+                  The Workshop
+                </div>
+              </div>
+            </div>
+            <h2
+              style="
+                margin: 0;
+                font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                font-weight: 400;
+                font-size: clamp(44px, 5.4vw, 72px);
+                line-height: 1;
+              "
+            >
+              We port these games online
+            </h2>
+            <p style="margin: 0; color: #d8cfe3">
+              Club members design and build browser versions of the games we play, so friends can play from different dorms, cities or time zones. Our
+              first is Clocktower Town, a gothic pixel-art town for private games of social deduction.
+            </p>
+            <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 16px; color: #c9bfd6">
+              <li style="display: flex; gap: 12px">
+                <span style="color: #d4a64a" aria-hidden="true">◆</span
+                ><span><strong style="color: #efe6d2">Proximity voice.</strong> Talk to whoever stands near you; walk away to whisper.</span>
+              </li>
+              <li style="display: flex; gap: 12px">
+                <span style="color: #d4a64a" aria-hidden="true">◆</span
+                ><span><strong style="color: #efe6d2">Storyteller tools.</strong> Run the night without a box of tokens.</span>
+              </li>
+              <li style="display: flex; gap: 12px">
+                <span style="color: #d4a64a" aria-hidden="true">◆</span
+                ><span><strong style="color: #efe6d2">Point and pin.</strong> Mark who you suspect for the whole town to see.</span>
+              </li>
+              <li style="display: flex; gap: 12px">
+                <span style="color: #d4a64a" aria-hidden="true">◆</span
+                ><span><strong style="color: #efe6d2">5 to 15 players.</strong> Private rooms with an invite link.</span>
+              </li>
+            </ul>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding-top: 4px">
+              <a
+                class="pxbtn"
+                href="https://clocktower.chrisshi.com/"
+                style="
+                  text-decoration: none;
+                  font-weight: 600;
+                  font-size: 18px;
+                  background: #d4a64a;
+                  color: #1a1408;
+                  padding: 13px 22px;
+                  box-shadow:
+                    0 -3px 0 #8a6d35,
+                    0 3px 0 #5e4a22,
+                    -3px 0 0 #8a6d35,
+                    3px 0 0 #5e4a22,
+                    inset 0 -4px 0 #a9822f,
+                    inset 0 4px 0 #f0d189;
+                "
+                >Play Clocktower Town ↗</a
+              >
+              <span style="font-size: 15px; color: #a89fb5">On the workbench: [next game], [semester]</span>
+            </div>
+          </div>
+          <div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; align-items: center">
+            <div
+              class="notch"
+              style="
+                width: 100%;
+                background: #3a3147;
+                padding: 18px 18px 14px;
+                box-shadow:
+                  inset 4px 4px 0 #5a5068,
+                  inset -4px -4px 0 #241f31;
+              "
+            >
+              <div class="notch" style="background: #0b0a10; padding: 6px">
+                <img
+                  src="assets/clocktower/clocktower-town.jpg"
+                  alt="Clocktower Town: a pixel-art town square at night under a clock tower, with the lobby panel for starting a game"
+                  style="display: block; width: 100%; height: auto; aspect-ratio: 1462 / 1203"
+                />
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-top: 12px;
+                  font-size: 13px;
+                  letter-spacing: 0.12em;
+                  color: #a89fb5;
+                "
+              >
+                <span>CLOCKTOWER TOWN · CLOCKTOWER.CHRISSHI.COM</span
+                ><span class="led" aria-hidden="true" style="width: 10px; height: 10px; background: #6f9e5b; box-shadow: 0 0 8px #6f9e5b"></span>
+              </div>
+            </div>
+            <span aria-hidden="true" style="width: 26%; height: 22px; background: #2e2740; box-shadow: inset 4px 0 0 #3a3147"></span>
+            <span aria-hidden="true" style="width: 44%; height: 12px; background: #3a3147"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- GALLERY: photos -->
+      <section class="stone" style="border-bottom: 3px solid #2e2740">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(64px, 8vw, 104px) clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-direction: column;
+            gap: 36px;
+          "
+        >
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div aria-hidden="true" style="display: inline-flex; flex-direction: column; align-items: flex-start">
+              <span style="width: 150px; height: 6px; background: #3a3147; box-shadow: 0 2px 0 #0b0a10"></span>
+              <div class="sign" style="margin-left: 18px; display: inline-flex; flex-direction: column">
+                <div style="display: flex; justify-content: space-between; padding: 0 14px">
+                  <span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span
+                  ><span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span>
+                </div>
+                <div
+                  class="wood"
+                  style="
+                    padding: 8px 18px;
+                    border: 3px solid #2b1c12;
+                    font-family: &quot;Jacquard 24&quot;, serif;
+                    font-size: 28px;
+                    line-height: 1;
+                    color: #f0d189;
+                    text-shadow: 0 2px 0 #2b1c12;
+                  "
+                >
+                  The Gallery
+                </div>
+              </div>
+            </div>
+            <h2
+              style="
+                margin: 12px 0 0;
+                font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                font-weight: 400;
+                font-size: clamp(44px, 5.4vw, 72px);
+                line-height: 1;
+              "
+            >
+              From our game nights
+            </h2>
+          </div>
+          <div style="display: flex; gap: 28px; align-items: flex-start; justify-content: center">
+            <div class="torch" aria-hidden="true" style="flex-direction: column; align-items: center; padding-top: 60px">
+              <div class="flame" style="display: flex; flex-direction: column; align-items: center">
+                <span style="width: 6px; height: 6px; background: #f6dc9a"></span><span style="width: 12px; height: 8px; background: #e9a94a"></span
+                ><span style="width: 16px; height: 8px; background: #e9793a"></span>
+              </div>
+              <span style="width: 22px; height: 6px; background: #5a5068"></span><span style="width: 8px; height: 40px; background: #3a3147"></span>
+            </div>
+            <div style="flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 36px">
+              <figure style="margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px">
+                <div class="notch" style="width: 100%; background: #d4a64a; padding: 4px; box-shadow: inset -4px -4px 0 #8a6d35">
+                  <div class="notch" style="background: #8a6d35; padding: 6px">
+                    <img
+                      class="notch"
+                      src="assets/clocktower/game-night-circle.jpg"
+                      alt="About fifteen students in office chairs sit in a wide circle around a Storyteller's open grimoire box"
+                      style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover"
+                    />
+                  </div>
+                </div>
+                <figcaption
+                  style="
+                    background: #8a6d35;
+                    color: #1a1408;
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 4px 14px;
+                    box-shadow:
+                      inset 0 2px 0 #d4a64a,
+                      inset 0 -2px 0 #5e4a22;
+                  "
+                >
+                  A full town and one Storyteller
+                </figcaption>
+              </figure>
+              <figure style="margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px">
+                <div class="notch" style="width: 100%; background: #d4a64a; padding: 4px; box-shadow: inset -4px -4px 0 #8a6d35">
+                  <div class="notch" style="background: #8a6d35; padding: 6px">
+                    <img
+                      class="notch"
+                      src="assets/clocktower/game-night-day-phase.jpg"
+                      alt="A player stands in the middle of a classroom circle making his case while the others listen"
+                      style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover"
+                    />
+                  </div>
+                </div>
+                <figcaption
+                  style="
+                    background: #8a6d35;
+                    color: #1a1408;
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 4px 14px;
+                    box-shadow:
+                      inset 0 2px 0 #d4a64a,
+                      inset 0 -2px 0 #5e4a22;
+                  "
+                >
+                  Day phase: making the case
+                </figcaption>
+              </figure>
+            </div>
+            <div class="torch" aria-hidden="true" style="flex-direction: column; align-items: center; padding-top: 60px">
+              <div class="flame" style="display: flex; flex-direction: column; align-items: center; animation-delay: 0.2s">
+                <span style="width: 6px; height: 6px; background: #f6dc9a"></span><span style="width: 12px; height: 8px; background: #e9a94a"></span
+                ><span style="width: 16px; height: 8px; background: #e9793a"></span>
+              </div>
+              <span style="width: 22px; height: 6px; background: #5a5068"></span><span style="width: 8px; height: 40px; background: #3a3147"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GUILD HALL: sponsors -->
+      <section id="sponsor" style="background: #120f18; border-bottom: 3px solid #2e2740">
+        <div
+          style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: clamp(64px, 8vw, 104px) clamp(16px, 4vw, 48px);
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+          "
+        >
+          <div style="display: flex; flex-wrap: wrap; gap: 32px 56px; align-items: flex-end; justify-content: space-between">
+            <div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+              <div aria-hidden="true" style="display: inline-flex; flex-direction: column; align-items: flex-start">
+                <span style="width: 150px; height: 6px; background: #3a3147; box-shadow: 0 2px 0 #0b0a10"></span>
+                <div class="sign" style="margin-left: 18px; display: inline-flex; flex-direction: column">
+                  <div style="display: flex; justify-content: space-between; padding: 0 14px">
+                    <span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span
+                    ><span style="width: 2px; height: 16px; background: repeating-linear-gradient(#a9822f 0 3px, transparent 3px 5px)"></span>
+                  </div>
+                  <div
+                    class="wood"
+                    style="
+                      padding: 8px 18px;
+                      border: 3px solid #2b1c12;
+                      font-family: &quot;Jacquard 24&quot;, serif;
+                      font-size: 28px;
+                      line-height: 1;
+                      color: #f0d189;
+                      text-shadow: 0 2px 0 #2b1c12;
+                    "
+                  >
+                    Guild Hall
+                  </div>
+                </div>
+              </div>
+              <h2
+                style="
+                  margin: 0;
+                  font-family: &quot;Jacquard 24&quot;, &quot;Pixelify Sans&quot;, serif;
+                  font-weight: 400;
+                  font-size: clamp(44px, 5.4vw, 72px);
+                  line-height: 1;
+                "
+              >
+                Hang your banner in town
+              </h2>
+              <p style="margin: 0; max-width: 32em; color: #d8cfe3">
+                Game nights run on borrowed rooms and copies our members bought themselves. Sponsors keep the nights free and keep our online ports
+                running.
+              </p>
+            </div>
+            <div style="display: flex; gap: 18px; flex-wrap: wrap" aria-label="Sponsor banner slots">
+              <div class="banner" style="display: flex; flex-direction: column; align-items: center">
+                <span aria-hidden="true" style="width: 132px; height: 8px; background: #8a6d35; box-shadow: inset 0 -2px 0 #5e4a22"></span>
+                <div
+                  style="
+                    width: 112px;
+                    height: 190px;
+                    background: #7d2a26;
+                    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+                    box-shadow:
+                      inset 0 0 0 4px #b2413b,
+                      inset 0 0 0 6px #d4a64a;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding-top: 30px;
+                    gap: 12px;
+                    box-sizing: border-box;
+                  "
+                >
+                  <svg width="44" height="52" viewBox="0 0 11 13" shape-rendering="crispEdges" aria-hidden="true">
+                    <path
+                      fill="#d4a64a"
+                      d="M0 0h11v1h-11zM0 1h1v6h-1zM10 1h1v6h-1zM1 7h1v2h-1zM9 7h1v2h-1zM2 9h1v1h-1zM8 9h1v1h-1zM3 10h1v1h-1zM7 10h1v1h-1zM4 11h3v1h-3zM5 12h1v1h-1z"
+                    ></path>
+                  </svg>
+                  <span style="font-size: 13px; color: #f3d9c9; text-align: center; padding: 0 8px">[Your logo]</span>
+                </div>
+              </div>
+              <div class="banner" style="display: flex; flex-direction: column; align-items: center">
+                <span aria-hidden="true" style="width: 132px; height: 8px; background: #8a6d35; box-shadow: inset 0 -2px 0 #5e4a22"></span>
+                <div
+                  style="
+                    width: 112px;
+                    height: 190px;
+                    background: #2f4a8f;
+                    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+                    box-shadow:
+                      inset 0 0 0 4px #4a6fc9,
+                      inset 0 0 0 6px #d4a64a;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding-top: 30px;
+                    gap: 12px;
+                    box-sizing: border-box;
+                  "
+                >
+                  <svg width="44" height="52" viewBox="0 0 11 13" shape-rendering="crispEdges" aria-hidden="true">
+                    <path
+                      fill="#d4a64a"
+                      d="M0 0h11v1h-11zM0 1h1v6h-1zM10 1h1v6h-1zM1 7h1v2h-1zM9 7h1v2h-1zM2 9h1v1h-1zM8 9h1v1h-1zM3 10h1v1h-1zM7 10h1v1h-1zM4 11h3v1h-3zM5 12h1v1h-1z"
+                    ></path>
+                  </svg>
+                  <span style="font-size: 13px; color: #dbe4fb; text-align: center; padding: 0 8px">[Your logo]</span>
+                </div>
+              </div>
+              <div class="banner" style="display: flex; flex-direction: column; align-items: center">
+                <span aria-hidden="true" style="width: 132px; height: 8px; background: #8a6d35; box-shadow: inset 0 -2px 0 #5e4a22"></span>
+                <div
+                  style="
+                    width: 112px;
+                    height: 190px;
+                    background: #3e5a31;
+                    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+                    box-shadow:
+                      inset 0 0 0 4px #6f9e5b,
+                      inset 0 0 0 6px #d4a64a;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding-top: 30px;
+                    gap: 12px;
+                    box-sizing: border-box;
+                  "
+                >
+                  <svg width="44" height="52" viewBox="0 0 11 13" shape-rendering="crispEdges" aria-hidden="true">
+                    <path
+                      fill="#d4a64a"
+                      d="M0 0h11v1h-11zM0 1h1v6h-1zM10 1h1v6h-1zM1 7h1v2h-1zM9 7h1v2h-1zM2 9h1v1h-1zM8 9h1v1h-1zM3 10h1v1h-1zM7 10h1v1h-1zM4 11h3v1h-3zM5 12h1v1h-1z"
+                    ></path>
+                  </svg>
+                  <span style="font-size: 13px; color: #dcebd3; text-align: center; padding: 0 8px">[Your logo]</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 24px">
+            <div
+              class="notch"
+              style="
+                flex: 1 1 300px;
+                min-width: 0;
+                background: #1b1724;
+                border: 2px solid #3a3147;
+                padding: 26px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+              "
+            >
+              <h3 style="margin: 0; font-size: 19px; font-weight: 700; color: #d4a64a">Your gold pays for</h3>
+              <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: #c9bfd6; font-size: 16px">
+                <li>More copies and scripts, so a big crowd can split into several towns</li>
+                <li>Servers for Clocktower Town and the ports after it</li>
+                <li>Food on game nights</li>
+                <li>A campus-wide Clocktower tournament</li>
+              </ul>
+            </div>
+            <div
+              class="notch"
+              style="
+                flex: 1 1 300px;
+                min-width: 0;
+                background: #1b1724;
+                border: 2px solid #3a3147;
+                padding: 26px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+              "
+            >
+              <h3 style="margin: 0; font-size: 19px; font-weight: 700; color: #d4a64a">Your guild gets</h3>
+              <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: #c9bfd6; font-size: 16px">
+                <li>A banner on this site and thanks at every game night</li>
+                <li>A credit inside Clocktower Town</li>
+                <li>A night with us: run a game, give a short talk, meet members</li>
+                <li>Reach to Carnegie Mellon students who enjoy logic and build multiplayer software</li>
+              </ul>
+            </div>
+            <div class="notch" style="flex: 1 1 300px; min-width: 0; background: #d4a64a; padding: 3px; display: flex">
+              <div class="notch" style="flex: 1; background: #1f1a29; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+                <h3 style="margin: 0; font-size: 19px; font-weight: 700; color: #d4a64a">Town ledger</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; font-variant-numeric: tabular-nums">
+                  <div>
+                    <div style="font-size: 32px; font-weight: 600">[##]</div>
+                    <div style="font-size: 14px; color: #a89fb5">members</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 32px; font-weight: 600">[##]</div>
+                    <div style="font-size: 14px; color: #a89fb5">game nights a semester</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 32px; font-weight: 600">[##]</div>
+                    <div style="font-size: 14px; color: #a89fb5">online players</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 32px; font-weight: 600">15</div>
+                    <div style="font-size: 14px; color: #a89fb5">players per town, max</div>
+                  </div>
+                </div>
+                <a
+                  class="pxbtn"
+                  href="#join"
+                  style="
+                    margin-top: auto;
+                    align-self: flex-start;
+                    text-decoration: none;
+                    font-weight: 600;
+                    font-size: 16px;
+                    background: #d4a64a;
+                    color: #1a1408;
+                    padding: 11px 18px;
+                    box-shadow:
+                      0 -3px 0 #8a6d35,
+                      0 3px 0 #5e4a22,
+                      -3px 0 0 #8a6d35,
+                      3px 0 0 #5e4a22,
+                      inset 0 -3px 0 #a9822f,
+                      inset 0 3px 0 #f0d189;
+                  "
+                  >Request our sponsor packet</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- THE ROAD OUT -->
+      <footer id="join" class="cobble">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 56px clamp(16px, 4vw, 48px) 36px; display: flex; flex-direction: column; gap: 32px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 32px">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <span style="font-family: &quot;Jacquard 24&quot;, serif; font-size: 38px; color: #d4a64a; line-height: 1">Social Deduction Club</span>
+              <span style="color: #a89fb5; font-size: 16px">Carnegie Mellon University · Pittsburgh, PA</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 48px; font-size: 16px">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <span style="font-size: 13px; letter-spacing: 0.12em; color: #a9822f">SEND A RAVEN</span>
+                <span>Discord: [invite link]</span>
+                <span>Instagram: [@handle]</span>
+                <span>Email: [club@andrew.cmu.edu]</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <span style="font-size: 13px; letter-spacing: 0.12em; color: #a9822f">PLAY ONLINE</span>
+                <a href="https://clocktower.chrisshi.com/">Clocktower Town ↗</a>
+              </div>
+            </div>
+          </div>
+          <p style="margin: 0; padding-top: 18px; border-top: 3px solid #2e2740; font-size: 13px; color: #8a8199">
+            Game names are trademarks of their respective publishers.
+          </p>
+        </div>
+      </footer>
+    </div>
+    <script>
+      // Lantern Town page runtime: a small binder that drives the page markup from the component's renderVals(),
+      // the same way the design canvas did (data-text, data-if, data-bind-*, data-on, data-ref).
+      class DCLogic {
+        constructor(props) {
+          this.props = props || {};
+          this.state = {};
+        }
+        setState(patch) {
+          Object.assign(this.state, typeof patch === "function" ? patch(this.state) : patch);
+          if (this.__render) this.__render();
+        }
+      }
+
+      class Component extends DCLogic {
+        constructor(props) {
+          super(props);
+          this.state = {
+            phase: "night",
+            now: Date.now(),
+            sel: "ada",
+            dead: [],
+            status: "playing",
+            msg: "",
+            intro: "idle",
+            introText: "",
+            victim: "",
+          };
+          this.tick = 0;
+          this.setCanvas = this.setCanvas.bind(this);
+          this.setHero = this.setHero.bind(this);
+          this.onMove = this.onMove.bind(this);
+          this.setIntroCanvas = this.setIntroCanvas.bind(this);
+          this.skipIntro = this.skipIntro.bind(this);
+          this.replayIntro = this.replayIntro.bind(this);
+        }
+
+        componentDidMount() {
+          this.clock = setInterval(() => this.setState({ now: Date.now() }), 15000);
+          let reduce = false;
+          try {
+            reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          } catch (e) {
+            reduce = false;
+          }
+          if (!reduce) this.startIntro();
+        }
+
+        componentWillUnmount() {
+          clearInterval(this.clock);
+          clearInterval(this.anim);
+          if (this.ro) this.ro.disconnect();
+          this.introWant = false;
+          clearTimeout(this.introTimer);
+          if (this.introCtrl) {
+            const c = this.introCtrl;
+            this.introCtrl = null;
+            c.dispose();
+          }
+        }
+
+        // ---- the opening (lantern-intro.js: Hollowmere from Clocktower Town's v3 renderer, ~8 s after it loads)
+        setIntroCanvas(el) {
+          this.introCanvas = el;
+        }
+
+        startIntro() {
+          if (this.introCtrl || this.introWant) return;
+          this.introWant = true;
+          this.setState({ intro: "loading", introText: "The Storyteller is setting up the town", victim: "" });
+          const t0 = Date.now();
+          const tryStart = () => {
+            if (!this.introWant) return;
+            if (window.LanternIntro && this.introCanvas) {
+              this.introCtrl = window.LanternIntro.play(this.introCanvas, {
+                onPhase: (name, d) => {
+                  if (!this.introWant) return;
+                  if (name === "loading") this.setState({ introText: d.text || "" });
+                  else this.setState({ intro: name, victim: d.name || this.state.victim });
+                },
+                onDone: () => {
+                  this.introCtrl = null;
+                  this.introWant = false;
+                  this.setState({ intro: "done" });
+                },
+              });
+              return;
+            }
+            if (Date.now() - t0 > 20000) {
+              this.introWant = false;
+              this.setState({ intro: "done" });
+              return;
+            }
+            this.introTimer = setTimeout(tryStart, 120);
+          };
+          tryStart();
+        }
+
+        skipIntro() {
+          this.introWant = false;
+          clearTimeout(this.introTimer);
+          if (this.introCtrl) {
+            const c = this.introCtrl;
+            this.introCtrl = null;
+            c.skip();
+          }
+          this.setState({ intro: "done" });
+        }
+
+        replayIntro() {
+          if (this.introCtrl || this.introWant) return;
+          try {
+            window.scrollTo(0, 0);
+          } catch (e) {
+            /* the preview may refuse */
+          }
+          this.startIntro();
+        }
+
+        componentDidUpdate(prevProps, prevState) {
+          if (prevState.phase !== this.state.phase || prevState.now !== this.state.now) this.draw();
+        }
+
+        villagers() {
+          return [
+            { id: "ada", name: "Ada", claim: "The Demon is not sitting next to me.", cloak: "#4a6fc9", skin: "#e8c39e" },
+            { id: "bram", name: "Bram", claim: "Cass and Dov are both good.", cloak: "#6f9e5b", skin: "#c99a6e" },
+            { id: "cass", name: "Cass", claim: "The Demon is either Edda or Finn.", cloak: "#c4524b", skin: "#f0d2b0" },
+            { id: "dov", name: "Dov", claim: "Bram is telling the truth.", cloak: "#8b6bd6", skin: "#a8754f" },
+            { id: "edda", name: "Edda", claim: "Ada is good.", cloak: "#d4a64a", skin: "#e8c39e" },
+            { id: "finn", name: "Finn", claim: "Edda is the Demon.", cloak: "#3e9f98", skin: "#f0d2b0" },
+            { id: "greta", name: "Greta", claim: "The Demon is within two seats of me.", cloak: "#e9793a", skin: "#c99a6e" },
+          ];
+        }
+
+        execute() {
+          const st = this.state;
+          if (st.status !== "playing" || st.dead.indexOf(st.sel) >= 0) return;
+          const v = this.villagers().find((x) => x.id === st.sel);
+          const dead = st.dead.concat([st.sel]);
+          if (st.sel === "finn") {
+            this.setState({
+              dead,
+              status: "won",
+              msg: "Finn was the Demon. Good wins! Cass narrowed it to Edda or Finn, and Edda’s claim held up, so Finn’s accusation was the lie. You would do well at our table.",
+            });
+            return;
+          }
+          const left = 3 - dead.length;
+          if (left <= 0) {
+            this.setState({
+              dead,
+              status: "lost",
+              msg: v.name + " was good too. Evil wins. The Demon was Finn: Cass’s claim leaves Edda or Finn, and Edda told the truth about Ada.",
+            });
+            return;
+          }
+          this.setState({
+            dead,
+            msg: v.name + " was a loyal villager. Night falls and the Demon strikes again. " + left + (left === 1 ? " day left." : " days left."),
+          });
+        }
+
+        pgh() {
+          try {
+            const parts = new Intl.DateTimeFormat("en-US", {
+              timeZone: "America/New_York",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: false,
+            }).formatToParts(new Date());
+            const get = (t) => {
+              const p = parts.find((x) => x.type === t);
+              return p ? parseInt(p.value, 10) : 0;
+            };
+            return { h: get("hour") % 24, m: get("minute") };
+          } catch (e) {
+            const d = new Date();
+            return { h: d.getHours(), m: d.getMinutes() };
+          }
+        }
+
+        setHero(el) {
+          this.hero = el;
+        }
+
+        onMove(e) {
+          const h = this.hero;
+          if (!h || this.state.phase !== "night") return;
+          const r = h.getBoundingClientRect();
+          h.style.setProperty("--lx", Math.round(e.clientX - r.left) + "px");
+          h.style.setProperty("--ly", Math.round(e.clientY - r.top) + "px");
+        }
+
+        setCanvas(el) {
+          if (!el || el === this.cv) return;
+          if (this.anim) clearInterval(this.anim);
+          if (this.ro) this.ro.disconnect();
+          this.cv = el;
+          this.ctx = el.getContext("2d");
+          this.reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+          this.fit();
+          if (window.ResizeObserver) {
+            this.ro = new ResizeObserver(() => this.fit());
+            this.ro.observe(el);
+          }
+          if (!this.reduce)
+            this.anim = setInterval(() => {
+              this.tick++;
+              this.step();
+              this.draw();
+            }, 120);
+        }
+
+        fit() {
+          const c = this.cv;
+          if (!c) return;
+          const r = c.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) return;
+          const H = 220,
+            W = Math.max(120, Math.round((H * r.width) / r.height));
+          if (c.width !== W || c.height !== H) {
+            c.width = W;
+            c.height = H;
+            this.build(W, H);
+          }
+          this.draw();
+        }
+
+        build(W, H) {
+          let s = 1234567;
+          const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+          this.W = W;
+          this.H = H;
+          this.G = H - 16;
+          this.stars = [];
+          for (let i = 0; i < Math.round(W * 0.55); i++) this.stars.push({ x: Math.floor(rnd() * W), y: Math.floor(rnd() * H * 0.6), b: rnd() });
+          this.back = [];
+          for (let x = -6; x < W;) {
+            const w = 12 + Math.floor(rnd() * 16),
+              h = 36 + Math.floor(rnd() * 34);
+            this.back.push({ x, w, h, r: Math.floor(w / 2.2) });
+            x += w - 3;
+          }
+          this.tx = Math.round(W * 0.72) - 13;
+          this.front = [];
+          for (let x = -8; x < W;) {
+            const w = 24 + Math.floor(rnd() * 20),
+              h = 22 + Math.floor(rnd() * 24);
+            const cols = Math.max(1, Math.floor((w - 6) / 7));
+            const rows = Math.max(1, Math.floor((h - 19) / 9) + 1);
+            const ox = Math.floor((w - (cols * 7 - 4)) / 2);
+            const wins = [];
+            for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) wins.push({ dx: ox + i * 7, dy: 5 + j * 9, on: rnd() < 0.55 });
+            this.front.push({
+              x,
+              w,
+              h,
+              r: 6 + Math.floor(rnd() * 7),
+              c: rnd() < 0.5 ? 0 : 1,
+              wins,
+              ch: rnd() < 0.45 ? 4 + Math.floor(rnd() * (w - 12)) : -1,
+              sd: Math.floor(rnd() * 30),
+            });
+            x += w + 1 + Math.floor(rnd() * 3);
+          }
+          this.lamps = [];
+          for (let x = 18; x < W; x += 54 + Math.floor(rnd() * 22)) this.lamps.push(x);
+          this.walkers = [
+            { x: rnd() * W, v: 0.7, d: 1 },
+            { x: rnd() * W, v: 0.45, d: -1 },
+          ];
+        }
+
+        step() {
+          const night = this.state.phase === "night";
+          if (night && this.stars) {
+            for (const st of this.stars) if (Math.random() < 0.03) st.b = Math.random();
+            if (Math.random() < 0.35 && this.front.length) {
+              const f = this.front[Math.floor(Math.random() * this.front.length)];
+              const w = f.wins[Math.floor(Math.random() * f.wins.length)];
+              if (w) w.on = !w.on;
+            }
+          }
+          if (this.walkers)
+            for (const k of this.walkers) {
+              k.x += k.v * k.d;
+              if (k.x > this.W + 4) k.x = -4;
+              if (k.x < -4) k.x = this.W + 4;
+            }
+        }
+
+        pal(night) {
+          return night
+            ? {
+                sky: ["#0b0a12", "#0f0d14", "#141120", "#1a1628", "#211b31", "#2a223d"],
+                back: "#1a1524",
+                tower: "#2a2338",
+                towerHi: "#3a3147",
+                towerLo: "#211b2d",
+                face: "#d8cfb4",
+                ring: "#8a6d35",
+                hands: "#1a1408",
+                roof: "#241d33",
+                roof2: "#2e2442",
+                eave: "#0f0d14",
+                house: "#17131f",
+                house2: "#1d1828",
+                chim: "#241d33",
+                smoke: "#3a3147",
+                door: "#0b0a10",
+                winOn: "#e9a94a",
+                winHi: "#f6dc9a",
+                winOff: "#2a2238",
+                street: "#17131e",
+                cobble: "#211c2a",
+                post: "#3a3147",
+                lamp: "#f6dc9a",
+                walker: "#0b0a10",
+              }
+            : {
+                sky: ["#5f93c8", "#6fa2d2", "#82b3dc", "#98c4e4", "#afd4ec", "#c8e3f1"],
+                back: "#93a3c0",
+                tower: "#a99fb8",
+                towerHi: "#c8c0d3",
+                towerLo: "#8f86a1",
+                face: "#f6efdc",
+                ring: "#b38b2e",
+                hands: "#2a2016",
+                roof: "#7a4f63",
+                roof2: "#9b5a4e",
+                eave: "#5b3d4c",
+                house: "#c2b7cf",
+                house2: "#d2c7ae",
+                chim: "#6b4a3a",
+                smoke: "#f2eef7",
+                door: "#5b4636",
+                winOn: "#f2e6c4",
+                winHi: "#ffffff",
+                winOff: "#6f80a0",
+                street: "#8d8599",
+                cobble: "#7d758b",
+                post: "#4a4058",
+                lamp: "#4a4058",
+                walker: "#3a3147",
+                cloud: "#f7f9fc",
+              };
+        }
+
+        tri(R, c, x, w, baseY, r) {
+          for (let j = 0; j < r; j++) {
+            const ww = Math.max(1, Math.round((w * (j + 1)) / r));
+            R(c, x + Math.floor((w - ww) / 2), baseY - r + j, ww, 1);
+          }
+        }
+
+        line(R, c, x0, y0, x1, y1) {
+          x0 = Math.round(x0);
+          y0 = Math.round(y0);
+          x1 = Math.round(x1);
+          y1 = Math.round(y1);
+          const dx = Math.abs(x1 - x0),
+            dy = -Math.abs(y1 - y0),
+            sx = x0 < x1 ? 1 : -1,
+            sy = y0 < y1 ? 1 : -1;
+          let e = dx + dy;
+          for (let i = 0; i < 64; i++) {
+            R(c, x0, y0, 1, 1);
+            if (x0 === x1 && y0 === y1) break;
+            const e2 = 2 * e;
+            if (e2 >= dy) {
+              e += dy;
+              x0 += sx;
+            }
+            if (e2 <= dx) {
+              e += dx;
+              y0 += sy;
+            }
+          }
+        }
+
+        draw() {
+          const ctx = this.ctx;
+          if (!ctx || !this.W) return;
+          const W = this.W,
+            H = this.H,
+            G = this.G,
+            night = this.state.phase === "night",
+            P = this.pal(night);
+          const R = (c, x, y, w, h) => {
+            ctx.fillStyle = c;
+            ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+          };
+          const n = P.sky.length,
+            bh = Math.ceil(G / n);
+          for (let i = 0; i < n; i++) R(P.sky[i], 0, i * bh, W, bh + 1);
+          for (let i = 1; i < n; i++) {
+            const y = i * bh;
+            for (let x = i % 2; x < W; x += 2) R(P.sky[i], x, y - 1, 1, 1);
+            for (let x = (i + 1) % 2; x < W; x += 2) R(P.sky[i - 1], x, y, 1, 1);
+          }
+          if (night) {
+            for (const st of this.stars) {
+              if (st.b < 0.25) continue;
+              R(st.b > 0.8 ? "#efe6d2" : st.b > 0.5 ? "#a89fb5" : "#4f4566", st.x, st.y, 1, 1);
+              if (st.b > 0.96) {
+                R("#4f4566", st.x - 1, st.y, 1, 1);
+                R("#4f4566", st.x + 1, st.y, 1, 1);
+                R("#4f4566", st.x, st.y - 1, 1, 1);
+                R("#4f4566", st.x, st.y + 1, 1, 1);
+              }
+            }
+            const mx = Math.round(W * 0.12),
+              my = 28,
+              mr = 12;
+            for (let dy = -mr; dy <= mr; dy++)
+              for (let dx = -mr; dx <= mr; dx++) {
+                if (dx * dx + dy * dy > mr * mr) continue;
+                if ((dx - 5) * (dx - 5) + (dy + 3) * (dy + 3) <= (mr - 1) * (mr - 1)) continue;
+                R("#efe6d2", mx + dx, my + dy, 1, 1);
+              }
+          } else {
+            const sx = Math.round(W * 0.12),
+              sy = 30,
+              sr = 11;
+            for (let dy = -sr - 3; dy <= sr + 3; dy++)
+              for (let dx = -sr - 3; dx <= sr + 3; dx++) {
+                const d = dx * dx + dy * dy;
+                if (d <= sr * sr) R("#fff1c2", sx + dx, sy + dy, 1, 1);
+                else if (d <= (sr + 2.5) * (sr + 2.5) && (dx + dy) % 2 === 0) R("#f6dc9a", sx + dx, sy + dy, 1, 1);
+              }
+            const drift = (this.tick * 0.2) % (W + 80);
+            [
+              [drift - 40, 46],
+              [((drift + W * 0.5) % (W + 80)) - 40, 24],
+              [((drift + W * 0.8) % (W + 80)) - 40, 58],
+            ].forEach(([cx, cy]) => {
+              R(P.cloud, cx, cy, 26, 4);
+              R(P.cloud, cx + 5, cy - 3, 14, 3);
+              R(P.cloud, cx + 9, cy - 5, 7, 2);
+            });
+          }
+          for (const b of this.back) {
+            const top = G - b.h;
+            R(P.back, b.x, top, b.w, b.h);
+            this.tri(R, P.back, b.x - 1, b.w + 2, top, b.r);
+          }
+          const tx = this.tx,
+            tw = 26,
+            th = Math.round(G * 0.84),
+            ty = G - th;
+          R(P.tower, tx, ty, tw, th);
+          R(P.towerHi, tx, ty, 2, th);
+          R(P.towerLo, tx + tw - 2, ty, 2, th);
+          R(P.towerHi, tx - 2, ty, tw + 4, 2);
+          R(P.towerHi, tx - 2, ty + 38, tw + 4, 2);
+          this.tri(R, P.roof, tx - 3, tw + 6, ty, 30);
+          R(P.ring, tx + 12, ty - 36, 2, 6);
+          const cx = tx + 13,
+            cy = ty + 19,
+            cr = 9;
+          for (let dy = -cr - 2; dy <= cr + 2; dy++)
+            for (let dx = -cr - 2; dx <= cr + 2; dx++) {
+              const d = dx * dx + dy * dy;
+              if (d <= cr * cr) R(P.face, cx + dx, cy + dy, 1, 1);
+              else if (d <= (cr + 1.5) * (cr + 1.5)) R(P.ring, cx + dx, cy + dy, 1, 1);
+            }
+          for (let k = 0; k < 12; k++) {
+            const a = (k * Math.PI) / 6;
+            R(k % 3 === 0 ? P.hands : P.ring, cx + Math.sin(a) * (cr - 1.5), cy - Math.cos(a) * (cr - 1.5), 1, 1);
+          }
+          const t = this.pgh();
+          const ma = (t.m / 60) * 2 * Math.PI,
+            ha = (((t.h % 12) + t.m / 60) / 12) * 2 * Math.PI;
+          this.line(R, P.hands, cx, cy, cx + Math.sin(ma) * 7, cy - Math.cos(ma) * 7);
+          this.line(R, P.hands, cx, cy, cx + Math.sin(ha) * 4.5, cy - Math.cos(ha) * 4.5);
+          for (let k = 0; k < 5; k++) {
+            const wy = ty + 52 + k * 24;
+            if (wy + 10 > G - 40) break;
+            R(night ? P.winOn : P.winOff, tx + 11, wy, 4, 8);
+            R(night ? P.winHi : P.winHi, tx + 12, wy + 2, 2, night ? 4 : 1);
+            R(P.tower, tx + 11, wy, 1, 1);
+            R(P.tower, tx + 14, wy, 1, 1);
+          }
+          for (const f of this.front) {
+            const top = G - f.h,
+              body = f.c ? P.house2 : P.house;
+            if (f.ch >= 0) {
+              R(P.chim, f.x + f.ch, top - f.r - 2, 4, f.r + 2);
+              if (!this.reduce)
+                for (let p = 0; p < 3; p++) {
+                  const age = (this.tick + f.sd + p * 9) % 27;
+                  R(P.smoke, f.x + f.ch + 1 + Math.round(Math.sin((age + p) / 3)), top - f.r - 4 - age, age < 14 ? 2 : 1, age < 14 ? 2 : 1);
+                }
+            }
+            R(body, f.x, top, f.w, f.h);
+            this.tri(R, f.c ? P.roof2 : P.roof, f.x - 2, f.w + 4, top, f.r);
+            R(P.eave, f.x - 2, top, f.w + 4, 1);
+            for (const w of f.wins) {
+              R(night ? (w.on ? P.winOn : P.winOff) : P.winOff, f.x + w.dx, top + w.dy, 3, 4);
+              if (night && w.on) R(P.winHi, f.x + w.dx + 1, top + w.dy + 1, 1, 2);
+              if (!night) R(P.winHi, f.x + w.dx, top + w.dy, 1, 1);
+            }
+            R(P.door, f.x + Math.floor(f.w / 2) - 2, G - 8, 5, 8);
+          }
+          R(P.street, 0, G, W, H - G);
+          for (let y = G + 2, row = 0; y < H; y += 4, row++) for (let x = row % 2 ? 0 : 3; x < W; x += 6) R(P.cobble, x, y, 3, 2);
+          for (const lx of this.lamps) {
+            R(P.post, lx, G - 14, 1, 14);
+            R(P.post, lx - 1, G - 15, 3, 1);
+            R(night ? P.lamp : P.post, lx - 1, G - 18, 3, 3);
+            if (night) {
+              ctx.fillStyle = "rgba(246,220,154,0.14)";
+              ctx.fillRect(lx - 5, G - 22, 11, 11);
+              ctx.fillStyle = "rgba(246,220,154,0.07)";
+              ctx.fillRect(lx - 10, G - 27, 21, 27);
+            }
+          }
+          for (const k of this.walkers) {
+            const x = Math.round(k.x),
+              y = G + 4;
+            R(P.walker, x, y - 2, 2, 7);
+            if (night) R("#f6dc9a", x + (k.d > 0 ? 2 : -1), y + 1, 1, 1);
+          }
+        }
+
+        renderVals() {
+          const st = this.state;
+          const night = st.phase === "night";
+          const t = this.pgh();
+          const timeStr = (t.h % 12 || 12) + ":" + String(t.m).padStart(2, "0") + " " + (t.h < 12 ? "am" : "pm");
+          const goodDead = st.dead.filter((id) => id !== "finn").length;
+          const daysLeft = Math.max(0, 3 - goodDead);
+          const vs = this.villagers().map((v, i) => {
+            const a = (i * 2 * Math.PI) / 7 - Math.PI / 2;
+            const dead = st.dead.indexOf(v.id) >= 0;
+            const demonShown = v.id === "finn" && st.status !== "playing";
+            const sel = st.sel === v.id;
+            return Object.assign({}, v, {
+              x: (50 + 37 * Math.cos(a)).toFixed(1),
+              y: (50 + 37 * Math.sin(a)).toFixed(1),
+              pressed: sel ? "true" : "false",
+              eye: demonShown ? "#ff4a3a" : "#1a1408",
+              horn: demonShown ? "#ff4a3a" : "transparent",
+              opacity: dead && !demonShown ? "0.45" : "1",
+              ring: sel ? "#d4a64a" : "transparent",
+              rowBg: sel ? "#2a2338" : "transparent",
+              rowBorder: sel ? "#d4a64a" : "#2e2740",
+              tag: demonShown ? "DEMON" : dead ? "GOOD" : "",
+              tagColor: demonShown ? "#ff8a7a" : "#a3cf8f",
+              label: v.name + (demonShown ? ", the Demon" : dead ? ", executed, was good" : "") + ". Claims: " + v.claim,
+              pick: () => this.setState({ sel: v.id }),
+            });
+          });
+          const selV = vs.find((v) => v.id === st.sel) || vs[0];
+          const selDead = st.dead.indexOf(selV.id) >= 0;
+          const intro = st.intro;
+          return {
+            setCanvas: this.setCanvas,
+            setHero: this.setHero,
+            onMove: this.onMove,
+            setIntroCanvas: this.setIntroCanvas,
+            skipIntro: this.skipIntro,
+            replayIntro: this.replayIntro,
+            introOn: intro !== "idle" && intro !== "done",
+            introLoading: intro === "loading",
+            introFly: intro === "fly",
+            introTitle: intro === "title",
+            introDeath: intro === "death" || intro === "out",
+            introOpacity: intro === "out" ? "0" : "1",
+            introText: st.introText,
+            victimName: st.victim,
+            night,
+            eyebrow: (night ? "NIGHT · " : "DAY · ") + timeStr + " IN PITTSBURGH",
+            eyebrowColor: night ? "#e9793a" : "#5e2a10",
+            titleColor: night ? "#efe6d2" : "#1d1830",
+            accentColor: night ? "#d4a64a" : "#8c302b",
+            heroShade: night
+              ? "linear-gradient(90deg, rgba(15,13,20,.78) 0%, rgba(15,13,20,.35) 48%, rgba(15,13,20,0) 70%)"
+              : "linear-gradient(90deg, rgba(220,234,245,.70) 0%, rgba(220,234,245,.25) 48%, rgba(220,234,245,0) 70%)",
+            hint: night
+              ? "Move your lantern across the rooftops. Some walls have writing on them."
+              : "Nothing hides in daylight. Switch to night to search the walls for clues.",
+            hintColor: night ? "#a89fb5" : "#2e2740",
+            nightPressed: night ? "true" : "false",
+            dayPressed: night ? "false" : "true",
+            nightBg: night ? "#d4a64a" : "#241f31",
+            nightFg: night ? "#1a1408" : "#c9bfd6",
+            dayBg: night ? "#241f31" : "#d4a64a",
+            dayFg: night ? "#c9bfd6" : "#1a1408",
+            toNight: () => this.setState({ phase: "night" }),
+            toDay: () => this.setState({ phase: "day" }),
+            villagers: vs,
+            selName: selV.name,
+            selClaim: selV.claim,
+            selCloak: selV.cloak,
+            selSkin: selV.skin,
+            execLabel: selDead ? selV.name + " is already dead" : "Execute " + selV.name,
+            cantExec: selDead,
+            execute: () => this.execute(),
+            reset: () => this.setState({ dead: [], status: "playing", msg: "", sel: "ada" }),
+            playing: st.status === "playing",
+            over: st.status !== "playing",
+            msg: st.msg || "Click a villager in the square, read their claim, and decide who to execute.",
+            days: [0, 1, 2].map((i) => ({ fill: i < daysLeft ? "#e9793a" : "#2e2740", hi: i < daysLeft ? "#f6dc9a" : "#3a3147" })),
+            daysText: daysLeft + (daysLeft === 1 ? " day left" : " days left"),
+          };
+        }
+      }
+
+      (function () {
+        const c = new Component({});
+        const all = (sel) => Array.from(document.querySelectorAll(sel));
+        const byId = (id) => document.getElementById(id);
+        let vals = c.renderVals();
+
+        // ---- lists (built once, updated in place so keyboard focus survives a re-render)
+        const CLOAK = "M2 0h4v1h-4zM1 1h6v1h-6zM1 2h1v3h-1zM6 2h1v3h-1zM2 5h4v1h-4zM1 6h6v1h-6zM0 7h8v2h-8zM1 9h6v1h-6zM1 10h2v1h-2zM5 10h2v1h-2z";
+        const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+        const plaza = byId("plazaVillagers"),
+          notes = byId("notesList"),
+          days = byId("daysList");
+        plaza.innerHTML = vals.villagers
+          .map(
+            (
+              v,
+              i
+            ) => `<button type="button" class="vill" data-i="${i}" style="position: absolute; transform: translate(-50%, -50%); background: transparent; border: 0; padding: 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #efe6d2">
+<span class="vtag" style="height: 14px; font-size: 12px; font-weight: 700"></span>
+<span class="vring" style="display: block; padding: 4px"><svg width="40" height="60" viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path class="vcloak" d="${CLOAK}"></path><path class="vskin" d="M2 2h4v3h-4z"></path><path class="veye" d="M2 3h1v1h-1zM5 3h1v1h-1z"></path><path fill="#1a1622" d="M1 11h2v1h-2zM5 11h2v1h-2z"></path><path class="vhorn" d="M1 0h1v1h-1zM6 0h1v1h-1z"></path></svg></span>
+<span style="font-size: 14px; font-weight: 600; background: rgba(15,13,20,.8); padding: 0 6px">${esc(v.name)}</span>
+</button>`
+          )
+          .join("");
+        notes.innerHTML = vals.villagers
+          .map(
+            (
+              v,
+              i
+            ) => `<button type="button" class="vill" data-i="${i}" style="text-align: left; cursor: pointer; display: flex; gap: 12px; align-items: baseline; padding: 6px 10px; border: 0; border-left: 4px solid; color: #c9bfd6; font: 400 15px/1.4 'Pixelify Sans', monospace">
+<span style="flex: 0 0 52px; font-weight: 700; color: ${esc(v.cloak)}">${esc(v.name)}</span><span style="min-width: 0">${esc(v.claim)}</span>
+</button>`
+          )
+          .join("");
+        days.innerHTML = vals.days
+          .map(
+            () =>
+              `<svg width="14" height="24" viewBox="0 0 7 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#8a6d35" d="M3 0h1v2h-1zM2 2h3v1h-3zM1 3h5v1h-5zM0 4h1v5h-1zM6 4h1v5h-1zM1 9h5v1h-5zM2 10h3v1h-3z"></path><path class="dfill" d="M1 4h5v5h-5z"></path><path class="dhi" d="M3 5h1v3h-1z"></path></svg>`
+          )
+          .join("");
+        const pick = (e) => {
+          const b = e.target.closest("button[data-i]");
+          if (b) vals.villagers[+b.dataset.i].pick();
+        };
+        plaza.addEventListener("click", pick);
+        notes.addEventListener("click", pick);
+
+        function renderLists(v) {
+          Array.from(plaza.children).forEach((b, i) => {
+            const d = v.villagers[i];
+            b.style.left = d.x + "%";
+            b.style.top = d.y + "%";
+            b.style.opacity = d.opacity;
+            b.setAttribute("aria-label", d.label);
+            b.setAttribute("aria-pressed", d.pressed);
+            const tag = b.querySelector(".vtag");
+            tag.textContent = d.tag;
+            tag.style.color = d.tagColor;
+            b.querySelector(".vring").style.boxShadow = "0 0 0 3px " + d.ring;
+            b.querySelector(".vcloak").setAttribute("fill", d.cloak);
+            b.querySelector(".vskin").setAttribute("fill", d.skin);
+            b.querySelector(".veye").setAttribute("fill", d.eye);
+            b.querySelector(".vhorn").setAttribute("fill", d.horn);
+          });
+          Array.from(notes.children).forEach((b, i) => {
+            const d = v.villagers[i];
+            b.style.borderLeftColor = d.rowBorder;
+            b.style.background = d.rowBg;
+            b.setAttribute("aria-pressed", d.pressed);
+          });
+          Array.from(days.children).forEach((s, i) => {
+            s.querySelector(".dfill").setAttribute("fill", v.days[i].fill);
+            s.querySelector(".dhi").setAttribute("fill", v.days[i].hi);
+          });
+        }
+
+        // ---- bindings
+        const texts = all("[data-text]"),
+          ifs = all("[data-if]"),
+          styles = all("[data-bind-style]"),
+          attrs = all("[data-bind-attr]"),
+          props = all("[data-bind-prop]");
+        function render() {
+          const v = (vals = c.renderVals());
+          for (const el of texts) {
+            const t = v[el.dataset.text] == null ? "" : String(v[el.dataset.text]);
+            if (el.textContent !== t) el.textContent = t;
+          }
+          for (const el of ifs) el.hidden = !v[el.dataset.if];
+          for (const el of styles)
+            for (const p of el.dataset.bindStyle.split(";;")) {
+              const [prop, k] = p.split("|");
+              el.style.setProperty(prop, v[k]);
+            }
+          for (const el of attrs) {
+            const [a, k] = el.dataset.bindAttr.split(":");
+            el.setAttribute(a, v[k]);
+          }
+          for (const el of props) {
+            const [a, k] = el.dataset.bindProp.split(":");
+            el[a] = !!v[k];
+          }
+          renderLists(v);
+        }
+        for (const el of all("[data-on]")) {
+          const [ev, k] = el.dataset.on.split(":");
+          el.addEventListener(ev, (e) => {
+            const fn = vals[k];
+            if (typeof fn === "function") fn(e);
+          });
+        }
+        c.__render = render;
+        render();
+        for (const el of all("[data-ref]")) {
+          const fn = vals[el.dataset.ref];
+          if (typeof fn === "function") fn(el);
+        }
+        if (typeof c.componentDidMount === "function") c.componentDidMount();
+        window.addEventListener("pagehide", () => {
+          if (typeof c.componentWillUnmount === "function") c.componentWillUnmount();
+        });
+      })();
+    </script>
+  </body>
+</html>
