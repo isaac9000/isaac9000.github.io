@@ -31,7 +31,14 @@ const entries = readdirSync("journal")
   });
 
 const iterations = 600000;
-const salt = crypto.getRandomValues(new Uint8Array(16));
+const out = "assets/journal/journal.enc.json";
+// reuse the existing salt so browsers that chose "remember" keep a working key across updates (the IV is always fresh)
+let salt;
+try {
+  const prev = JSON.parse(readFileSync(out, "utf8"));
+  if (prev.iterations === iterations) salt = Buffer.from(prev.salt, "base64");
+} catch {}
+salt ??= crypto.getRandomValues(new Uint8Array(16));
 const iv = crypto.getRandomValues(new Uint8Array(12));
 const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
 const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, [
@@ -41,5 +48,5 @@ const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new
 
 const b64 = (b) => Buffer.from(b).toString("base64");
 mkdirSync("assets/journal", { recursive: true });
-writeFileSync("assets/journal/journal.enc.json", JSON.stringify({ iterations, salt: b64(salt), iv: b64(iv), ciphertext: b64(ciphertext) }) + "\n");
+writeFileSync(out, JSON.stringify({ iterations, salt: b64(salt), iv: b64(iv), ciphertext: b64(ciphertext) }) + "\n");
 console.log(`Encrypted ${entries.length} entries into assets/journal/journal.enc.json`);
