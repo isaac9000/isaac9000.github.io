@@ -40,6 +40,9 @@
         font-weight: 400;
         margin: 0 0 32px;
       }
+      [hidden] {
+        display: none !important;
+      }
       form {
         display: flex;
         gap: 8px;
@@ -61,6 +64,20 @@
       }
       button {
         cursor: pointer;
+      }
+      #remember-label {
+        flex-basis: 100%;
+        font-size: 15px;
+        color: var(--muted);
+      }
+      #remember-label input {
+        flex: none;
+        padding: 0;
+      }
+      #forget {
+        margin-top: 24px;
+        font-size: 14px;
+        color: var(--muted);
       }
       #error {
         color: var(--accent);
@@ -91,27 +108,68 @@
       <form id="unlock">
         <input id="password" type="password" placeholder="Password" autocomplete="current-password" autofocus required />
         <button type="submit">Unlock</button>
+        <label id="remember-label"><input id="remember" type="checkbox" checked /> Remember this browser</label>
       </form>
       <p id="error" hidden></p>
       <div id="entries"></div>
+      <button id="forget" hidden>Forget this browser</button>
     </main>
     <script>
+      const SAVED = "journal-key";
       const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+      const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
       const paras = (body) =>
         body
           .split(/\n\s*\n/)
           .map((p) => `<p>${esc(p.trim()).replace(/\n/g, "<br>")}</p>`)
           .join("");
+      const form = document.getElementById("unlock");
+      const error = document.getElementById("error");
+      let data;
+      const load = async () => (data ??= await (await fetch("assets/journal/journal.enc.json", { cache: "no-store" })).json());
 
-      document.getElementById("unlock").addEventListener("submit", async (e) => {
+      // decrypts and shows the entries; returns false if the key is wrong
+      async function open(key) {
+        let plain;
+        try {
+          plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes(data.iv) }, key, bytes(data.ciphertext));
+        } catch {
+          return false;
+        }
+        const entries = JSON.parse(new TextDecoder().decode(plain));
+        document.getElementById("entries").innerHTML = entries.length
+          ? entries.map((x) => `<article><time>${esc(x.date)}</time>${x.title ? `<h2>${esc(x.title)}</h2>` : ""}${paras(x.body)}</article>`).join("")
+          : "<p>No entries yet.</p>";
+        form.hidden = true;
+        return true;
+      }
+
+      // a remembered browser keeps the derived key (never the password) and unlocks on load
+      (async () => {
+        let saved;
+        try {
+          saved = JSON.parse(localStorage.getItem(SAVED));
+        } catch {}
+        if (!saved) return;
+        try {
+          await load();
+          const key = await crypto.subtle.importKey("raw", bytes(saved.key), "AES-GCM", false, ["decrypt"]);
+          if (saved.salt === data.salt && (await open(key))) return (document.getElementById("forget").hidden = false);
+        } catch {}
+        try {
+          localStorage.removeItem(SAVED);
+        } catch {}
+      })();
+
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const error = document.getElementById("error");
-        const button = e.target.querySelector("button");
+        const button = form.querySelector("button");
+        const remember = document.getElementById("remember").checked;
         error.hidden = true;
         button.disabled = true;
         try {
-          const data = await (await fetch("assets/journal/journal.enc.json", { cache: "no-store" })).json();
+          await load();
           const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(document.getElementById("password").value), "PBKDF2", false, [
             "deriveKey",
           ]);
@@ -119,28 +177,29 @@
             { name: "PBKDF2", salt: bytes(data.salt), iterations: data.iterations, hash: "SHA-256" },
             baseKey,
             { name: "AES-GCM", length: 256 },
-            false,
+            remember,
             ["decrypt"]
           );
-          let plain;
-          try {
-            plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes(data.iv) }, key, bytes(data.ciphertext));
-          } catch {
-            throw new Error("Wrong password.");
+          if (!(await open(key))) throw new Error("Wrong password.");
+          if (remember) {
+            try {
+              localStorage.setItem(SAVED, JSON.stringify({ salt: data.salt, key: b64(await crypto.subtle.exportKey("raw", key)) }));
+              document.getElementById("forget").hidden = false;
+            } catch {}
           }
-          const entries = JSON.parse(new TextDecoder().decode(plain));
-          document.getElementById("entries").innerHTML = entries.length
-            ? entries
-                .map((x) => `<article><time>${esc(x.date)}</time>${x.title ? `<h2>${esc(x.title)}</h2>` : ""}${paras(x.body)}</article>`)
-                .join("")
-            : "<p>No entries yet.</p>";
-          e.target.hidden = true;
         } catch (err) {
           error.textContent = err.message;
           error.hidden = false;
         } finally {
           button.disabled = false;
         }
+      });
+
+      document.getElementById("forget").addEventListener("click", () => {
+        try {
+          localStorage.removeItem(SAVED);
+        } catch {}
+        location.reload();
       });
     </script>
   </body>
