@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Journal</title>
+    <style>
+      :root {
+        --bg: #fbfaf7;
+        --fg: #22211f;
+        --muted: #7a766f;
+        --line: #e4e0d8;
+        --accent: #b1040e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #17161a;
+          --fg: #e8e5df;
+          --muted: #9a958d;
+          --line: #2e2c31;
+          --accent: #ff6b6b;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          18px/1.65 Georgia,
+          "Times New Roman",
+          serif;
+      }
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 56px 16px;
+      }
+      h1 {
+        font-weight: 400;
+        margin: 0 0 32px;
+      }
+      form {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      input,
+      button {
+        font: inherit;
+        font-size: 16px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      input {
+        flex: 1;
+        min-width: 0;
+      }
+      button {
+        cursor: pointer;
+      }
+      #error {
+        color: var(--accent);
+        font-size: 15px;
+      }
+      article {
+        border-top: 1px solid var(--line);
+        padding: 24px 0;
+      }
+      time {
+        color: var(--muted);
+        font-size: 14px;
+        letter-spacing: 0.04em;
+      }
+      h2 {
+        font-size: 22px;
+        font-weight: 400;
+        margin: 4px 0 0;
+      }
+      article p {
+        margin: 12px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Journal</h1>
+      <form id="unlock">
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" autofocus required />
+        <button type="submit">Unlock</button>
+      </form>
+      <p id="error" hidden></p>
+      <div id="entries"></div>
+    </main>
+    <script>
+      const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+      const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      const paras = (body) =>
+        body
+          .split(/\n\s*\n/)
+          .map((p) => `<p>${esc(p.trim()).replace(/\n/g, "<br>")}</p>`)
+          .join("");
+
+      document.getElementById("unlock").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const error = document.getElementById("error");
+        const button = e.target.querySelector("button");
+        error.hidden = true;
+        button.disabled = true;
+        try {
+          const data = await (await fetch("assets/journal/journal.enc.json", { cache: "no-store" })).json();
+          const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(document.getElementById("password").value), "PBKDF2", false, [
+            "deriveKey",
+          ]);
+          const key = await crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: bytes(data.salt), iterations: data.iterations, hash: "SHA-256" },
+            baseKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["decrypt"]
+          );
+          let plain;
+          try {
+            plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes(data.iv) }, key, bytes(data.ciphertext));
+          } catch {
+            throw new Error("Wrong password.");
+          }
+          const entries = JSON.parse(new TextDecoder().decode(plain));
+          document.getElementById("entries").innerHTML = entries.length
+            ? entries
+                .map((x) => `<article><time>${esc(x.date)}</time>${x.title ? `<h2>${esc(x.title)}</h2>` : ""}${paras(x.body)}</article>`)
+                .join("")
+            : "<p>No entries yet.</p>";
+          e.target.hidden = true;
+        } catch (err) {
+          error.textContent = err.message;
+          error.hidden = false;
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
