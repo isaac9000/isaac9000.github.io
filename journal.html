@@ -100,6 +100,22 @@
       article p {
         margin: 12px 0 0;
       }
+      article h3,
+      article h4,
+      article h5 {
+        margin: 24px 0 0;
+        line-height: 1.3;
+      }
+      article h3 {
+        font-size: 20px;
+      }
+      article h4 {
+        font-size: 18px;
+      }
+      article h5 {
+        font-size: 16px;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
@@ -119,11 +135,25 @@
       const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
       const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-      const paras = (body) =>
-        body
-          .split(/\n\s*\n/)
-          .map((p) => `<p>${esc(p.trim()).replace(/\n/g, "<br>")}</p>`)
-          .join("");
+      // blank lines split paragraphs; "# ", "## ", "### " lines become headings under the entry title
+      const paras = (body) => {
+        let html = "",
+          lines = [];
+        const flush = () => {
+          if (lines.length) html += `<p>${lines.map(esc).join("<br>")}</p>`;
+          lines = [];
+        };
+        for (const line of body.split("\n")) {
+          const h = line.match(/^(#{1,3})\s+(.*)/);
+          if (h) {
+            flush();
+            html += `<h${h[1].length + 2}>${esc(h[2].trim())}</h${h[1].length + 2}>`;
+          } else if (line.trim()) lines.push(line.trim());
+          else flush();
+        }
+        flush();
+        return html;
+      };
       const form = document.getElementById("unlock");
       const error = document.getElementById("error");
       let data;
